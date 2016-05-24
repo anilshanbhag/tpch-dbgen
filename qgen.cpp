@@ -1,27 +1,4 @@
 /*
-* $Id: qgen.c,v 1.3 2005/10/28 02:54:35 jms Exp $
-*
-* Revision History
-* ===================
-* $Log: qgen.c,v $
-* Revision 1.3  2005/10/28 02:54:35  jms
-* add release.h changes
-*
-* Revision 1.2  2005/01/03 20:08:59  jms
-* change line terminations
-*
-* Revision 1.1.1.1  2004/11/24 23:31:47  jms
-* re-establish external server
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* recreation after CVS crash
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* initial checkin
-*
-*
-*/
-/*
  * qgen.c -- routines to convert query templates to executable query
  *           text for TPC-H and TPC-R
  */
@@ -29,11 +6,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#if (defined(_POSIX_)||!defined(WIN32))
 #include <unistd.h>
-#else
-#include "process.h"
-#endif /* WIN32 */
 #include <ctype.h>
 #include <time.h>
 #include "config.h"
@@ -85,7 +58,7 @@ strip_comments(char *line)
     char *cp1, *cp2;
 
     cp1 = line;
-    
+
     while (1)   /* traverse the entire string */
         {
         if (in_comment)
@@ -96,7 +69,7 @@ strip_comments(char *line)
                 in_comment = 0;
                 continue;
                 }
-            else 
+            else
                 {
                 *cp1 = '\0';
                 break;
@@ -136,7 +109,7 @@ strip_comments(char *line)
  *  second line set explain on;         -x from command line
  *   :<number>  parameter <number>
  *  :k          set number
- *  :o          output to outpath/qnum.snum    
+ *  :o          output to outpath/qnum.snum
  *                                      -o from command line, SET_OUTPUT
  *  :s          stream number
  *  :b          BEGIN WORK;             -a from command line, START_TRAN
@@ -151,20 +124,19 @@ static char *line = NULL,
     *qpath = NULL;
 FILE *qfp;
 char *cptr,
-    *mark,
-    *qroot = NULL;
+    *mark;
 
     qnum = atoi(qtag);
     if (line == NULL)
         {
-        line = malloc(BUFSIZ);
-        qpath = malloc(BUFSIZ);
+        line = (char*)malloc(BUFSIZ);
+        qpath = (char*)malloc(BUFSIZ);
         MALLOC_CHECK(line);
         MALLOC_CHECK(qpath);
         }
 
-    qroot = env_config(QDIR_TAG, QDIR_DFLT);
-    sprintf(qpath, "%s%c%s.sql", 
+    const char* qroot = env_config(QDIR_TAG, QDIR_DFLT);
+    sprintf(qpath, "%s%c%s.sql",
 		qroot, PATH_SEP, qtag);
     qfp = fopen(qpath, "r");
     OPEN_CHECK(qfp, qpath);
@@ -215,7 +187,7 @@ char *cptr,
                 case 'o':
                 case 'O':
                     if (flags & OUTPUT)
-                        fprintf(ofp,"%s '%s/%s.%d'", SET_OUTPUT, osuff, 
+                        fprintf(ofp,"%s '%s/%s.%d'", SET_OUTPUT, osuff,
                             qtag, (snum < 0)?0:snum);
                     cptr++;
                     break;
@@ -248,7 +220,7 @@ char *cptr,
                     while (isdigit(*++cptr));
                     break;
                 default:
-		    fprintf(stderr, "-- unknown flag '%c%c' ignored\n", 
+		    fprintf(stderr, "-- unknown flag '%c%c' ignored\n",
                         VTAG, *cptr);
 		    cptr++;
 		    break;
@@ -265,7 +237,7 @@ char *cptr,
 void
 usage(void)
 {
-printf("%s Parameter Substitution (v. %d.%d.%d build %d)\n", 
+printf("%s Parameter Substitution (v. %d.%d.%d build %d)\n",
           NAME, VERSION,RELEASE,
             PATCH,BUILD);
 printf("Copyright %s %s\n", TPC, C_DATES);
@@ -316,13 +288,13 @@ process_options(int cnt, char **args)
                 exit(0);
                 break;
             case 'i':   /* set stream initialization file name */
-                ifile = malloc((int)strlen(optarg) + 1);
+                ifile = (char*)malloc((int)strlen(optarg) + 1);
                 MALLOC_CHECK(ifile);
                 strcpy(ifile, optarg);
                 flags |= INIT;
                 break;
             case 'l':   /* log parameter usages */
-                lfile = malloc((int)strlen(optarg) + 1);
+                lfile = (char*)malloc((int)strlen(optarg) + 1);
                 MALLOC_CHECK(lfile);
                 strcpy(lfile, optarg);
                 flags |= LOG;
@@ -331,13 +303,13 @@ process_options(int cnt, char **args)
                 flags |= DFLT_NUM;
                 break;
             case 'n':   /* set database name */
-                db_name = malloc((int)strlen(optarg) + 1);
+                db_name = (char*)malloc((int)strlen(optarg) + 1);
                 MALLOC_CHECK(db_name);
                 strcpy(db_name, optarg);
                 flags |= DBASE;
                 break;
             case 'o':   /* set the output path */
-                osuff = malloc((int)strlen(optarg) + 1);
+                osuff = (char*)malloc((int)strlen(optarg) + 1);
                 MALLOC_CHECK(osuff);
                 strcpy(osuff, optarg);
                 flags |=OUTPUT;
@@ -359,7 +331,7 @@ process_options(int cnt, char **args)
 						"Data set integrity is not guaranteed.\n");
                 break;
             case 't':   /* set termination file name */
-                tfile = malloc((int)strlen(optarg) + 1);
+                tfile = (char*) malloc((int)strlen(optarg) + 1);
                 MALLOC_CHECK(tfile);
                 strcpy(tfile, optarg);
                 flags |= TERMINATE;
@@ -389,12 +361,12 @@ setup(void)
     read_dist(env_config(DIST_TAG, DIST_DFLT), "nations", &nations);
     read_dist(env_config(DIST_TAG, DIST_DFLT), "nations2", &nations2);
     read_dist(env_config(DIST_TAG, DIST_DFLT), "regions", &regions);
-    read_dist(env_config(DIST_TAG, DIST_DFLT), "o_oprio", 
+    read_dist(env_config(DIST_TAG, DIST_DFLT), "o_oprio",
         &o_priority_set);
-    read_dist(env_config(DIST_TAG, DIST_DFLT), "instruct", 
+    read_dist(env_config(DIST_TAG, DIST_DFLT), "instruct",
         &l_instruct_set);
     read_dist(env_config(DIST_TAG, DIST_DFLT), "smode", &l_smode_set);
-    read_dist(env_config(DIST_TAG, DIST_DFLT), "category", 
+    read_dist(env_config(DIST_TAG, DIST_DFLT), "category",
         &l_category_set);
     read_dist(env_config(DIST_TAG, DIST_DFLT), "rflag", &l_rflag_set);
     read_dist(env_config(DIST_TAG, DIST_DFLT), "msegmnt", &c_mseg_set);
@@ -417,7 +389,7 @@ int main(int ac, char **av)
 	d_path = NULL;
     process_options(ac, av);
     if (flags & VERBOSE)
-        fprintf(ofp, 
+        fprintf(ofp,
 	    "-- TPC %s Parameter Substitution (Version %d.%d.%d build %d)\n",
             NAME, VERSION, RELEASE, PATCH, BUILD);
 
@@ -439,7 +411,7 @@ int main(int ac, char **av)
 		}
     else
         printf("-- using default substitutions\n");
-    
+
     if (flags & INIT)           /* init stream with ifile */
         {
         ifp = fopen(ifile, "r");
@@ -466,7 +438,7 @@ int main(int ac, char **av)
     else
         if (optind < ac)
             for (i=optind; i < ac; i++)
-                qsub(av[i], flags);   
+                qsub(av[i], flags);
         else
             for (i=1; i <= QUERIES_PER_SET; i++)
                 {
@@ -474,7 +446,7 @@ int main(int ac, char **av)
                 sprintf(qname, "%d", i);
                 qsub(qname, flags);
                 }
-    
+
     if (flags & TERMINATE)      /* terminate stream with tfile */
         {
         ifp = fopen(tfile, "r");

@@ -1,39 +1,4 @@
 /*
-* $Id: text.c,v 1.6 2006/07/31 17:23:09 jms Exp $
-*
-* Revision History
-* ===================
-* $Log: text.c,v $
-* Revision 1.6  2006/07/31 17:23:09  jms
-* fix to parallelism problem
-*
-* Revision 1.5  2006/05/18 23:50:00  jms
-* commit text generation change with larger buffer
-*
-* Revision 1.4  2006/05/16 16:26:51  jms
-* remove calls to FAKE_V_STR
-*
-* Revision 1.3  2006/05/16 15:55:58  jms
-* first cut to Meikel
-*
-* Revision 1.2  2005/01/03 20:08:59  jms
-* change line terminations
-*
-* Revision 1.1.1.1  2004/11/24 23:31:47  jms
-* re-establish external server
-*
-* Revision 1.1.1.1  2003/08/07 17:58:34  jms
-* recreation after CVS crash
-*
-* Revision 1.2  2003/08/07 17:58:34  jms
-* Convery RNG to 64bit space as preparation for new large scale RNG
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* initial checkin
-*
-*
-*/
-/*
  * text.c --- pseaudo text generator for use in DBGEN 2.0
  *
  * Defined Routines:
@@ -46,10 +11,8 @@
 
 #include "config.h"
 #include <stdlib.h>
-#if (defined(_POSIX_)||!defined(WIN32))		/* Change for Windows NT */
 #include <unistd.h>
 #include <sys/wait.h>
-#endif /* WIN32 */
 #include <stdio.h>				/* */
 #include <limits.h>
 #include <math.h>
@@ -57,42 +20,13 @@
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
-#ifdef HP
-#include <strings.h>
-#endif
-#if (defined(WIN32)&&!defined(_POSIX_))
-#include <process.h>
-#pragma warning(disable:4201)
-#pragma warning(disable:4214)
-#pragma warning(disable:4514)
-#define WIN32_LEAN_AND_MEAN
-#define NOATOM
-#define NOGDICAPMASKS
-#define NOMETAFILE
-#define NOMINMAX
-#define NOMSG
-#define NOOPENFILE
-#define NORASTEROPS
-#define NOSCROLL
-#define NOSOUND
-#define NOSYSMETRICS
-#define NOTEXTMETRIC
-#define NOWH
-#define NOCOMM
-#define NOKANJI
-#define NOMCX
-#include <windows.h>
-#pragma warning(default:4201)
-#pragma warning(default:4214)
-#endif
 
 #define TEXT_POOL_SIZE (300 * 1024 * 1024)  /* 300MiB */
 
 #include "dss.h"
-#include "dsstypes.h"
 
-/* 
- * txt_vp() -- 
+/*
+ * txt_vp() --
  *		generate a verb phrase by
  *		1) selecting a verb phrase form
  *		2) parsing it to select parts of speech
@@ -101,10 +35,10 @@
  *
  *	Returns: length of generated phrase
  *	Called By: txt_sentence()
- *	Calls: pick_str() 
+ *	Calls: pick_str()
  */
 static int
-txt_vp(char *dest, int sd) 
+txt_vp(char *dest, int sd)
 {
 	char syntax[MAX_GRAMMAR_LEN + 1],
 		*cptr,
@@ -113,7 +47,7 @@ txt_vp(char *dest, int sd)
 	int i,
 		res = 0;
 
-	
+
 	pick_str(&vp, sd, &syntax[0]);
 	parse_target = syntax;
 	while ((cptr = strtok(parse_target, " ")) != NULL)
@@ -127,7 +61,7 @@ txt_vp(char *dest, int sd)
 		case 'V':
 			src = &verbs;
 			break;
-		case 'X': 
+		case 'X':
 			src = &auxillaries;
 			break;
 		}	/* end of POS switch statement */
@@ -150,8 +84,8 @@ txt_vp(char *dest, int sd)
 	return(res);
 }
 
-/* 
- * txt_np() -- 
+/*
+ * txt_np() --
  *		generate a noun phrase by
  *		1) selecting a noun phrase form
  *		2) parsing it to select parts of speech
@@ -160,10 +94,10 @@ txt_vp(char *dest, int sd)
  *
  *	Returns: length of generated phrase
  *	Called By: txt_sentence()
- *	Calls: pick_str(), 
+ *	Calls: pick_str(),
  */
 static int
-txt_np(char *dest, int sd) 
+txt_np(char *dest, int sd)
 {
 	char syntax[MAX_GRAMMAR_LEN + 1],
 		*cptr,
@@ -172,7 +106,7 @@ txt_np(char *dest, int sd)
 	int i,
 		res = 0;
 
-	
+
 	pick_str(&np, sd, &syntax[0]);
 	parse_target = syntax;
 	while ((cptr = strtok(parse_target, " ")) != NULL)
@@ -189,7 +123,7 @@ txt_np(char *dest, int sd)
 		case 'D':
 			src = &adverbs;
 			break;
-		case 'N': 
+		case 'N':
 			src = &nouns;
 			break;
 		}	/* end of POS switch statement */
@@ -212,8 +146,8 @@ txt_np(char *dest, int sd)
 	return(res);
 }
 
-/* 
- * txt_sentence() -- 
+/*
+ * txt_sentence() --
  *		generate a sentence by
  *		1) selecting a sentence form
  *		2) parsing it to select parts of speech or phrase types
@@ -222,10 +156,10 @@ txt_np(char *dest, int sd)
  *
  *	Returns: length of generated sentence
  *	Called By: dbg_text()
- *	Calls: pick_str(), txt_np(), txt_vp() 
+ *	Calls: pick_str(), txt_np(), txt_vp()
  */
 static int
-txt_sentence(char *dest, int sd) 
+txt_sentence(char *dest, int sd)
 {
 	char syntax[MAX_GRAMMAR_LEN + 1],
 		*cptr;
@@ -233,7 +167,7 @@ txt_sentence(char *dest, int sd)
 		res = 0,
 		len = 0;
 
-	
+
 	pick_str(&grammar, sd, syntax);
 	cptr = syntax;
 
@@ -247,7 +181,7 @@ next_token:	/* I hate goto's, but can't seem to have parent and child use strtok
 		case 'V':
 			len = txt_vp(dest, sd);
 			break;
-		case 'N': 
+		case 'N':
 			len = txt_np(dest, sd);
 			break;
 		case 'P':
@@ -278,14 +212,14 @@ done:
 }
 
 /*
- * dbg_text() -- 
- *		produce ELIZA-like text of random, bounded length, truncating the last 
+ * dbg_text() --
+ *		produce ELIZA-like text of random, bounded length, truncating the last
  *		generated sentence as required
  */
 void
 dbg_text(char *tgt, int min, int max, int sd)
 {
-   DSS_HUGE hgLength = 0,
+   int64_t hgLength = 0,
       hgOffset,
       wordlen = 0,
       s_len,
@@ -295,13 +229,13 @@ dbg_text(char *tgt, int min, int max, int sd)
    static char szTextPool[TEXT_POOL_SIZE + 1];
    static int bInit = 0;
    int nLifeNoise = 0;
-   
+
    if (!bInit)
    {
       cp = &szTextPool[0];
       if (verbose > 0)
          fprintf(stderr, "\nPreloading text ... ");
-      
+
       while (wordlen < TEXT_POOL_SIZE)
       {
          if ((verbose > 0) && (wordlen > nLifeNoise))
@@ -309,7 +243,7 @@ dbg_text(char *tgt, int min, int max, int sd)
             nLifeNoise += 200000;
             fprintf(stderr, "%3.0f%%\b\b\b\b", (100.0 * wordlen)/TEXT_POOL_SIZE);
          }
-         
+
          s_len = txt_sentence(sentence, 5);
          if ( s_len < 0)
             INTERNAL_ERROR("Bad sentence formation");
@@ -360,9 +294,9 @@ distribution nouns,
 main()
 {
 	char prattle[401];
-	
+
 	verbose = 1;
-   
+
    read_dist (env_config (DIST_TAG, DIST_DFLT), "nouns", &nouns);
 	read_dist (env_config (DIST_TAG, DIST_DFLT), "verbs", &verbs);
 	read_dist (env_config (DIST_TAG, DIST_DFLT), "adjectives", &adjectives);

@@ -1,80 +1,10 @@
-/*
-* $Id: dss.h,v 1.10 2008/03/21 18:07:13 jms Exp $
-*
-* Revision History
-* ===================
-* $Log: dss.h,v $
-* Revision 1.10  2008/03/21 18:07:13  jms
-* update copyright date
-*
-* Revision 1.9  2006/07/31 17:23:09  jms
-* fix to parallelism problem
-*
-* Revision 1.8  2006/03/09 18:55:29  jms
-* remove vestigial cvs merge marker
-*
-* Revision 1.7  2005/10/28 03:05:05  jms
-* up maximum scale to 100TB
-*
-* Revision 1.6  2005/10/28 02:55:26  jms
-* add release.h changes
-*
-* Revision 1.5  2005/10/27 18:13:03  jms
-* a_rnd() prototype correction
-*
-* Revision 1.4  2005/10/25 17:58:59  jms
-* update version stamp
-*
-* Revision 1.3  2005/03/04 19:48:39  jms
-* Changes from Doug Johnson to address very large scale factors
-*
-* Revision 1.2  2005/01/03 20:08:58  jms
-* change line terminations
-*
-* Revision 1.1.1.1  2004/11/24 23:31:46  jms
-* re-establish external server
-*
-* Revision 1.5  2004/04/08 17:34:15  jms
-* cleanup SOLARIS/SUN ifdefs; now all use SUN
-*
-* Revision 1.4  2004/04/07 20:17:29  jms
-* bug #58 (join fails between order/lineitem)
-*
-* Revision 1.3  2004/03/16 14:37:53  jms
-* update version and copyright date; correct comment typo
-*
-* Revision 1.2  2004/02/18 14:07:20  jms
-* change to version 2.1.0
-*
-* Revision 1.1.1.1  2003/08/08 21:50:33  jms
-* recreation after CVS crash
-*
-* Revision 1.3  2003/08/08 21:35:26  jms
-* first integration of rng64 for o_custkey and l_partkey
-*
-* Revision 1.2  2003/08/07 17:58:34  jms
-* Convery RNG to 64bit space as preparation for new large scale RNG
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* initial checkin
-*
-*
-*/
  /*
- * general definitions and control information for the DSS code 
+ * general definitions and control information for the DSS code
  * generator; if it controls the data set, it's here
  */
-#ifndef DSS_H
-#define  DSS_H
-#ifdef TPCH
+#pragma once
+
 #define NAME			"TPC-H"
-#endif
-#ifdef TPCR
-#define NAME			"TPC-R"
-#endif
-#ifndef NAME
-#error Benchmark version must be defined in config.h
-#endif
 #define TPC             "Transaction Processing Performance Council"
 #define C_DATES         "1994 - 2010"
 
@@ -149,49 +79,54 @@ static char lnoise[4] = {'|', '/', '-', '\\' };
 
 #define RANDOM(tgt, lower, upper, stream)	dss_random(&tgt, lower, upper, stream)
 #define RANDOM64(tgt, lower, upper, stream)	dss_random64(&tgt, lower, upper, stream)
-	
-     
 
-typedef struct
+
+
+struct set_member
 {
    long      weight;
    char     *text;
-}         set_member;
+};
 
-typedef struct
+struct distribution
 {
    int      count;
    int      max;
    set_member *list;
    long *permute;
-}         distribution;
+};
+
+struct table_t {
+
+};
+
 /*
- * some handy access functions 
+ * some handy access functions
  */
 #define DIST_SIZE(d)		d->count
 #define DIST_MEMBER(d, i)	((set_member *)((d)->list + i))->text
 #define DIST_PERMUTE(d, i)	(d->permute[i])
 
-typedef struct
+struct tdef
 {
-   char     *name;
-   char     *comment;
-   DSS_HUGE      base;
-   int       (*loader) ();
-   long      (*gen_seed)();
+   const char* name;
+   const char* comment;
+   int64_t      base;
+   int       (*loader) (table_t*, int);
+   long      (*gen_seed)(int, int64_t);
    int       child;
-   DSS_HUGE vtotal;
-}         tdef;
+   int64_t vtotal;
+};
 
-typedef struct SEED_T {
+struct seed_t {
 	long table;
-	DSS_HUGE value;
-	DSS_HUGE usage;
-	DSS_HUGE boundary;
+	int64_t value;
+	int64_t usage;
+	int64_t boundary;
 #ifdef RNG_TEST
-	DSS_HUGE nCalls;
+	int64_t nCalls;
 #endif
-	} seed_t;
+	};
 
 
 #if defined(__STDC__)
@@ -201,28 +136,25 @@ typedef struct SEED_T {
 #endif
 
 /* bm_utils.c */
-char	*env_config PROTO((char *var, char *dflt));
-long	yes_no PROTO((char *prompt));
-void     a_rnd PROTO((int min, int max, int column, char *dest));
-int     tx_rnd PROTO((long min, long max, long column, char *tgt));
-long	julian PROTO((long date));
-long	unjulian PROTO((long date));
-FILE	*tbl_open PROTO((int tbl, char *mode));
-long	dssncasecmp PROTO((char *s1, char *s2, int n));
-long	dsscasecmp PROTO((char *s1, char *s2));
-int		pick_str PROTO((distribution * s, int c, char *target));
-void	agg_str PROTO((distribution *set, long count, long col, char *dest));
-void	read_dist PROTO((char *path, char *name, distribution * target));
-void	embed_str PROTO((distribution *d, int min, int max, int stream, char *dest));
-#ifndef STDLIB_HAS_GETOPT
-int		getopt PROTO((int arg_cnt, char **arg_vect, char *oprions));
-#endif /* STDLIB_HAS_GETOPT */
-DSS_HUGE	set_state PROTO((int t, long scale, long procs, long step, DSS_HUGE *e));
+const char	*env_config (const char *var, const char *dflt);
+long	yes_no (char *prompt);
+void     a_rnd (int min, int max, int column, char *dest);
+int     tx_rnd (long min, long max, long column, char *tgt);
+long	julian (long date);
+long	unjulian (long date);
+FILE	*tbl_open (int tbl, const char *mode);
+long	dssncasecmp (const char *s1, const char *s2, int n);
+long	dsscasecmp (const char *s1, const char *s2);
+int		pick_str (distribution * s, int c, char *target);
+void	agg_str (distribution *set, long count, long col, char *dest);
+void	read_dist (const char *path, const char *name, distribution * target);
+void	embed_str (distribution *d, int min, int max, int stream, char *dest);
+int64_t	set_state (int t, long scale, long procs, long step, int64_t *e);
 
 /* rnd.c */
-DSS_HUGE	NextRand PROTO((DSS_HUGE nSeed));
-DSS_HUGE	UnifInt PROTO((DSS_HUGE nLow, DSS_HUGE nHigh, long nStream));
-void	dss_random(DSS_HUGE *tgt, DSS_HUGE min, DSS_HUGE max, long seed);
+int64_t	NextRand (int64_t nSeed);
+int64_t	UnifInt (int64_t nLow, int64_t nHigh, long nStream);
+void	dss_random(int64_t *tgt, int64_t min, int64_t max, long seed);
 void	row_start(int t);
 void	row_stop(int t);
 void	dump_seeds(int t);
@@ -232,7 +164,7 @@ void	dump_seeds(int t);
 #define MAX_SENT_LEN	256 /* max length of populated sentence */
 #define RNG_PER_SENT	27	/* max number of RNG calls per sentence */
 
-void		dbg_text PROTO((char * t, int min, int max, int s));
+void		dbg_text (char * t, int min, int max, int s);
 
 #ifdef DECLARER
 #define EXTERN
@@ -286,7 +218,7 @@ EXTERN int delete_segments;
 EXTERN int insert_orders_segment;
 EXTERN int insert_lineitem_segment;
 EXTERN int delete_segment;
- 
+
 
 #ifndef DECLARER
 extern tdef tdefs[];
@@ -331,7 +263,7 @@ extern tdef tdefs[];
 #define  S_NAME_FMT "%%s%%0%d%s"
 #define  S_ABAL_MIN   -99999
 #define  S_ABAL_MAX    999999
-#define  S_CMNT_MAX    101      
+#define  S_CMNT_MAX    101
 #define  S_CMNT_BBB    10       /* number of BBB comments/SF */
 #define  BBB_DEADBEATS 50       /* % that are complaints */
 #define  BBB_BASE  "Customer "
@@ -430,14 +362,14 @@ extern tdef tdefs[];
  * beyond this point we need to allow for BCD calculations
  */
 #define  MAX_32B_SCALE   1000.0
-#define LONG2HUGE(src, dst)		*dst = (DSS_HUGE)src	
+#define LONG2HUGE(src, dst)		*dst = (int64_t)src
 #define HUGE2LONG(src, dst)		*dst = (long)src
-#define HUGE_SET(src, dst)		*dst = *src	
-#define HUGE_MUL(op1, op2)		*op1 *= op2	
-#define HUGE_DIV(op1, op2)		*op1 /= op2	
-#define HUGE_ADD(op1, op2, dst)	*dst = *op1 + op2	
-#define HUGE_SUB(op1, op2, dst)	*dst = *op1 - op2	
-#define HUGE_MOD(op1, op2)		*op1 % op2	
+#define HUGE_SET(src, dst)		*dst = *src
+#define HUGE_MUL(op1, op2)		*op1 *= op2
+#define HUGE_DIV(op1, op2)		*op1 /= op2
+#define HUGE_ADD(op1, op2, dst)	*dst = *op1 + op2
+#define HUGE_SUB(op1, op2, dst)	*dst = *op1 - op2
+#define HUGE_MOD(op1, op2)		*op1 % op2
 #define HUGE_CMP(op1, op2)		(*op1 == *op2)?0:(*op1 < *op2)-1:1
 
 
@@ -496,8 +428,8 @@ sprintf(tgt, "19%02ld-%02ld-%02ld", yr, mn, dy)
 /* assume float is a 64 bit quantity */
 #define  VRF_MONEY(t,d)	tdefs[t].vtotal = *((long *)&d) + *((long *)(&d + 1))
 #define  VRF_CHR(t,d)	tdefs[t].vtotal += d
-#define  VRF_STRT(t)  
-#define  VRF_END(t)  
+#define  VRF_STRT(t)
+#define  VRF_END(t)
 
 /*********** distribuitons currently defined *************/
 #define  UNIFORM   0
@@ -541,8 +473,9 @@ sprintf(tgt, "19%02ld-%02ld-%02ld", yr, mn, dy)
 #define  N_CMNT_SD 41
 #define  R_CMNT_SD 42
 #define  O_LCNT_SD 43
-#define  BBB_JNK_SD    44          
-#define  BBB_TYPE_SD   45         
-#define  BBB_CMNT_SD   46         
-#define  BBB_OFFSET_SD 47         
-#endif            /* DSS_H */
+#define  BBB_JNK_SD    44
+#define  BBB_TYPE_SD   45
+#define  BBB_CMNT_SD   46
+#define  BBB_OFFSET_SD 47
+
+#include "dsstypes.h"

@@ -1,27 +1,9 @@
-/*
-* $Id: tpcd.h,v 1.2 2005/01/03 20:08:59 jms Exp $
-*
-* Revision History
-* ===================
-* $Log: tpcd.h,v $
-* Revision 1.2  2005/01/03 20:08:59  jms
-* change line terminations
-*
-* Revision 1.1.1.1  2004/11/24 23:31:47  jms
-* re-establish external server
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* recreation after CVS crash
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* initial checkin
-*
-*
-*/
 /*****************************************************************
  *  Title: tpcd.h for TPC D
  *****************************************************************
  */
+#pragma once
+
 #define DFLT            0x0001
 #define OUTPUT          0x0002
 #define EXPLAIN         0x0004
@@ -73,7 +55,7 @@
 #define END_TRAN ""
 #define SET_OUTPUT ""
 #define SET_ROWCOUNT "where rownum <= %d;\n"
-#define SET_DBASE ""
+#define SET_DBASE "%s"
 #endif
 
 #ifdef 	SQLSERVER
@@ -117,7 +99,7 @@ EXTERN char *tfile;
 
 #define MAX_PERMUTE     41
 #ifdef DECLARER
-int rowcnt_dflt[QUERIES_PER_SET + 1] = 
+int rowcnt_dflt[QUERIES_PER_SET + 1] =
     {-1,-1,100,10,-1,-1,-1,-1,-1,-1,20,-1,-1,-1,-1,-1,-1,-1,100,-1,-1,100,-1};
 int rowcnt;
 #define SEQUENCE(stream, query) permutation[stream % MAX_PERMUTE][query - 1]

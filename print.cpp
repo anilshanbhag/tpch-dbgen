@@ -1,38 +1,3 @@
-/*
-* $Id: print.c,v 1.3 2005/10/28 02:56:22 jms Exp $
-*
-* Revision History
-* ===================
-* $Log: print.c,v $
-* Revision 1.3  2005/10/28 02:56:22  jms
-* add platform-specific printf formats to allow for DSS_HUGE data type
-*
-* Revision 1.2  2005/01/03 20:08:59  jms
-* change line terminations
-*
-* Revision 1.1.1.1  2004/11/24 23:31:47  jms
-* re-establish external server
-*
-* Revision 1.4  2004/02/18 16:26:49  jms
-* 32/64 bit changes for overflow handling needed additional changes when ported back to windows
-*
-* Revision 1.3  2004/02/18 14:05:53  jms
-* porting changes for LINUX and 64 bit RNG
-*
-* Revision 1.2  2004/01/22 05:49:29  jms
-* AIX porting (AIX 5.1)
-*
-* Revision 1.1.1.1  2003/08/07 17:58:34  jms
-* recreation after CVS crash
-*
-* Revision 1.2  2003/08/07 17:58:34  jms
-* Convery RNG to 64bit space as preparation for new large scale RNG
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* initial checkin
-*
-*
-*/
 /* generate flat files for data load */
 #include <stdio.h>
 #ifndef VMS
@@ -44,14 +9,13 @@
 #include <math.h>
 
 #include "dss.h"
-#include "dsstypes.h"
 #include <string.h>
 
 /*
  * Function Prototypes
  */
 FILE *print_prep PROTO((int table, int update));
-int pr_drange PROTO((int tbl, DSS_HUGE min, DSS_HUGE cnt, long num));
+int pr_drange PROTO((int tbl, int64_t min, int64_t cnt, long num));
 
 FILE *
 print_prep(int table, int update)
@@ -67,9 +31,9 @@ print_prep(int table, int update)
 				int this_segment;
 				if(strcmp(tdefs[table].name,"orders.tbl"))
 					this_segment=++insert_orders_segment;
-				else 
+				else
 					this_segment=++insert_lineitem_segment;
-				sprintf(upath, "%s%c%s.u%d.%d", 
+				sprintf(upath, "%s%c%s.u%d.%d",
 					env_config(PATH_TAG, PATH_DFLT),
 					PATH_SEP, tdefs[table].name, update%10000,this_segment);
 				}
@@ -113,7 +77,7 @@ dbg_print(int format, FILE *target, void *data, int len, int sep)
 #ifdef MVS
 	case DT_VSTR:
 		/* note: only used in MVS, assumes columnar output */
-		fprintf(target, "%c%c%-*s", 
+		fprintf(target, "%c%c%-*s",
 			(len >> 8) & 0xFF, len & 0xFF, len, (char *)data);
 		break;
 #endif /* MVS */
@@ -121,13 +85,13 @@ dbg_print(int format, FILE *target, void *data, int len, int sep)
 		fprintf(target, "%ld", (long)data);
 		break;
 	case DT_HUGE:
-		fprintf(target, HUGE_FORMAT, *(DSS_HUGE *)data);
+		fprintf(target, HUGE_FORMAT, *(int64_t *)data);
 		break;
 	case DT_KEY:
 		fprintf(target, "%ld", (long)data);
 		break;
 	case DT_MONEY:
-		cents = (int)*(DSS_HUGE *)data;
+		cents = (int)*(int64_t *)data;
 		if (cents < 0)
 			{
 			fprintf(target, "-");
@@ -146,15 +110,16 @@ dbg_print(int format, FILE *target, void *data, int len, int sep)
 	if (sep)
 #endif /* EOL_HANDLING */
 	fprintf(target, "%c", SEPARATOR);
-	
+
 	return(0);
 }
 
 int
-pr_cust(customer_t *c, int mode)
+pr_cust(table_t* tp, int mode)
 {
 static FILE *fp = NULL;
-        
+customer_t *c = static_cast<customer_t*>(tp);
+
    if (fp == NULL)
         fp = print_prep(CUST, 0);
 
@@ -176,17 +141,18 @@ static FILE *fp = NULL;
 }
 
 /*
- * print the numbered order 
+ * print the numbered order
  */
 int
-pr_order(order_t *o, int mode)
+pr_order(table_t* tp,  int mode)
 {
+order_t *o = static_cast<order_t*>(tp);
     static FILE *fp_o = NULL;
     static int last_mode = 0;
-        
+
     if (fp_o == NULL || mode != last_mode)
         {
-        if (fp_o) 
+        if (fp_o)
             fclose(fp_o);
         fp_o = print_prep(ORDER, mode);
         last_mode = mode;
@@ -210,15 +176,16 @@ pr_order(order_t *o, int mode)
  * print an order's lineitems
  */
 int
-pr_line(order_t *o, int mode)
+pr_line(table_t* tp, int mode)
 {
+order_t *o = static_cast<order_t*>(tp);
     static FILE *fp_l = NULL;
     static int last_mode = 0;
     long      i;
-        
+
     if (fp_l == NULL || mode != last_mode)
         {
-        if (fp_l) 
+        if (fp_l)
             fclose(fp_l);
         fp_l = print_prep(LINE, mode);
         last_mode = mode;
@@ -253,8 +220,9 @@ pr_line(order_t *o, int mode)
  * print the numbered order *and* its associated lineitems
  */
 int
-pr_order_line(order_t *o, int mode)
+pr_order_line(table_t* tp, int mode)
 {
+order_t *o = static_cast<order_t*>(tp);
     tdefs[ORDER].name = tdefs[ORDER_LINE].name;
     pr_order(o, mode);
     pr_line(o, mode);
@@ -266,8 +234,9 @@ pr_order_line(order_t *o, int mode)
  * print the given part
  */
 int
-pr_part(part_t *part, int mode)
+pr_part(table_t* tp, int mode)
 {
+part_t* part = static_cast<part_t*>(tp);
 static FILE *p_fp = NULL;
 
     if (p_fp == NULL)
@@ -292,8 +261,9 @@ static FILE *p_fp = NULL;
  * print the given part's suppliers
  */
 int
-pr_psupp(part_t *part, int mode)
+pr_psupp(table_t* tp, int mode)
 {
+part_t* part = static_cast<part_t*>(tp);
     static FILE *ps_fp = NULL;
     long      i;
 
@@ -318,8 +288,9 @@ pr_psupp(part_t *part, int mode)
  * print the given part *and* its suppliers
  */
 int
-pr_part_psupp(part_t *part, int mode)
+pr_part_psupp(table_t* tp, int mode)
 {
+part_t* part = static_cast<part_t*>(tp);
     tdefs[PART].name = tdefs[PART_PSUPP].name;
     pr_part(part, mode);
     pr_psupp(part, mode);
@@ -328,10 +299,11 @@ pr_part_psupp(part_t *part, int mode)
 }
 
 int
-pr_supp(supplier_t *supp, int mode)
+pr_supp(table_t* tp, int mode)
 {
+supplier_t* supp = static_cast<supplier_t*>(tp);
 static FILE *fp = NULL;
-        
+
    if (fp == NULL)
         fp = print_prep(SUPP, mode);
 
@@ -349,10 +321,11 @@ static FILE *fp = NULL;
 }
 
 int
-pr_nation(code_t *c, int mode)
+pr_nation(table_t* tp, int mode)
 {
+code_t* c = static_cast<code_t*>(tp);
 static FILE *fp = NULL;
-        
+
    if (fp == NULL)
         fp = print_prep(NATION, mode);
 
@@ -367,10 +340,11 @@ static FILE *fp = NULL;
 }
 
 int
-pr_region(code_t *c, int mode)
+pr_region(table_t* tp, int mode)
 {
+code_t* c = static_cast<code_t*>(tp);
 static FILE *fp = NULL;
-        
+
    if (fp == NULL)
         fp = print_prep(REGION, mode);
 
@@ -383,22 +357,22 @@ static FILE *fp = NULL;
    return(0);
 }
 
-/* 
+/*
  * NOTE: this routine does NOT use the BCD2_* routines. As a result,
  * it WILL fail if the keys being deleted exceed 32 bits. Since this
  * would require ~660 update iterations, this seems an acceptable
  * oversight
  */
 int
-pr_drange(int tbl, DSS_HUGE min, DSS_HUGE cnt, long num)
+pr_drange(int tbl, int64_t min, int64_t cnt, long num)
 {
     static int  last_num = 0;
     static FILE *dfp = NULL;
-    DSS_HUGE child = -1;
-    DSS_HUGE start, last, new;
+    int64_t child = -1;
+    int64_t start, last, current;
 
-	static DSS_HUGE rows_per_segment=0;
-	static DSS_HUGE rows_this_segment=0;
+	static int64_t rows_per_segment=0;
+	static int64_t rows_this_segment=0;
 
     if (last_num != num)
         {
@@ -415,11 +389,11 @@ pr_drange(int tbl, DSS_HUGE min, DSS_HUGE cnt, long num)
     last = start - 1;
     for (child=min; cnt > 0; child++, cnt--)
 	{
-		new = MK_SPARSE(child, num/ (10000 / UPD_PCT));
+		current = MK_SPARSE(child, num/ (10000 / UPD_PCT));
 		if (delete_segments)
 		{
 
-			if(rows_per_segment==0) 
+			if(rows_per_segment==0)
 				rows_per_segment = (cnt / delete_segments) + 1;
 			if((++rows_this_segment) > rows_per_segment)
 			{
@@ -431,12 +405,12 @@ pr_drange(int tbl, DSS_HUGE min, DSS_HUGE cnt, long num)
 			}
 		}
 		PR_STRT(dfp);
-		PR_HUGE(dfp, &new);
+		PR_HUGE(dfp, &current);
 		PR_END(dfp);
-		start = new;
-		last = new;
+		start = current;
+		last = current;
 	}
-    
+
     return(0);
 }
 

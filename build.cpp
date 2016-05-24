@@ -1,36 +1,3 @@
-/*
- * $Id: build.c,v 1.5 2009/06/28 14:01:08 jms Exp $
- * 
- * Revision History =================== $Log: build.c,v $
- * Revision History =================== Revision 1.5  2009/06/28 14:01:08  jms
- * Revision History =================== bug fix for DOP
- * Revision History =================== Revision 1.4
- * 2005/10/28 02:56:22  jms add platform-specific printf formats to allow for
- * DSS_HUGE data type
- * 
- * Revision 1.3  2005/10/14 23:16:54  jms fix for answer set compliance
- * 
- * Revision 1.2  2005/01/03 20:08:58  jms change line terminations
- * 
- * Revision 1.1.1.1  2004/11/24 23:31:46  jms re-establish external server
- * 
- * Revision 1.3  2004/04/07 20:17:29  jms bug #58 (join fails between
- * order/lineitem)
- * 
- * Revision 1.2  2004/01/22 05:49:29  jms AIX porting (AIX 5.1)
- * 
- * Revision 1.1.1.1  2003/08/08 21:35:26  jms recreation after CVS crash
- * 
- * Revision 1.3  2003/08/08 21:35:26  jms first integration of rng64 for
- * o_custkey and l_partkey
- * 
- * Revision 1.2  2003/08/07 17:58:34  jms Convery RNG to 64bit space as
- * preparation for new large scale RNG
- * 
- * Revision 1.1.1.1  2003/04/03 18:54:21  jms initial checkin
- * 
- * 
- */
 /* stuff related to the customer table */
 #include <stdio.h>
 #include <string.h>
@@ -43,7 +10,6 @@
 #include <math.h>
 
 #include "dss.h"
-#include "dsstypes.h"
 #ifdef ADHOC
 #include "adhoc.h"
 extern adhoc_t  adhocs[];
@@ -57,18 +23,18 @@ extern adhoc_t  adhocs[];
 #define JDAY(date) ((date) - STARTDATE + JDAY_BASE + 1)
 #define PART_SUPP_BRIDGE(tgt, p, s) \
     { \
-    DSS_HUGE tot_scnt = tdefs[SUPP].base * scale; \
+    int64_t tot_scnt = tdefs[SUPP].base * scale; \
     tgt = (p + s *  (tot_scnt / SUPP_PER_PART +  \
 	(long) ((p - 1) / tot_scnt))) % tot_scnt + 1; \
     }
 #define V_STR(avg, sd, tgt)  a_rnd((int)(avg * V_STR_LOW),(int)(avg * V_STR_HGH), sd, tgt)
 #define TEXT(avg, sd, tgt)  dbg_text(tgt, (int)(avg * V_STR_LOW),(int)(avg * V_STR_HGH), sd)
-static void gen_phone PROTO((DSS_HUGE ind, char *target, long seed));
+static void gen_phone PROTO((int64_t ind, char *target, long seed));
 
-DSS_HUGE
-rpb_routine(DSS_HUGE p)
+int64_t
+rpb_routine(int64_t p)
 {
-	DSS_HUGE        price;
+	int64_t        price;
 
 	price = 90000;
 	price += (p / 10) % 20001;	/* limit contribution to $200 */
@@ -78,9 +44,9 @@ rpb_routine(DSS_HUGE p)
 }
 
 static void
-gen_phone(DSS_HUGE ind, char *target, long seed)
+gen_phone(int64_t ind, char *target, long seed)
 {
-	DSS_HUGE        acode, exchg, number;
+	int64_t        acode, exchg, number;
 
 	RANDOM(acode, 100, 999, seed);
 	RANDOM(exchg, 100, 999, seed);
@@ -98,9 +64,9 @@ gen_phone(DSS_HUGE ind, char *target, long seed)
 
 
 long
-mk_cust(DSS_HUGE n_cust, customer_t * c)
+mk_cust(int64_t n_cust, customer_t * c)
 {
-	DSS_HUGE        i;
+	int64_t        i;
 	static int      bInit = 0;
 	static char     szFormat[100];
 
@@ -129,7 +95,7 @@ mk_cust(DSS_HUGE n_cust, customer_t * c)
  * generate the numbered order and its associated lineitems
  */
 void
-mk_sparse(DSS_HUGE i, DSS_HUGE * ok, long seq)
+mk_sparse(int64_t i, int64_t * ok, long seq)
 {
 	long            low_bits;
 
@@ -146,17 +112,17 @@ mk_sparse(DSS_HUGE i, DSS_HUGE * ok, long seq)
 }
 
 long
-mk_order(DSS_HUGE index, order_t * o, long upd_num)
+mk_order(int64_t index, order_t * o, long upd_num)
 {
-	DSS_HUGE        lcnt;
-	DSS_HUGE        rprice;
+	int64_t        lcnt;
+	int64_t        rprice;
 	long            ocnt;
-	DSS_HUGE        tmp_date;
-	DSS_HUGE        s_date;
-	DSS_HUGE        r_date;
-	DSS_HUGE        c_date;
-	DSS_HUGE        clk_num;
-	DSS_HUGE        supp_num;
+	int64_t        tmp_date;
+	int64_t        s_date;
+	int64_t        r_date;
+	int64_t        c_date;
+	int64_t        clk_num;
+	int64_t        supp_num;
 	static char   **asc_date = NULL;
 	char            tmp_str[2];
 	char          **mk_ascdate PROTO((void));
@@ -269,11 +235,11 @@ mk_order(DSS_HUGE index, order_t * o, long upd_num)
 }
 
 long
-mk_part(DSS_HUGE index, part_t * p)
+mk_part(int64_t index, part_t * p)
 {
-	DSS_HUGE        temp;
+	int64_t        temp;
 	long            snum;
-	DSS_HUGE        brnd;
+	int64_t        brnd;
 	static int      bInit = 0;
 	static char     szFormat[100];
 	static char     szBrandFormat[100];
@@ -311,9 +277,9 @@ mk_part(DSS_HUGE index, part_t * p)
 }
 
 long
-mk_supp(DSS_HUGE index, supplier_t * s)
+mk_supp(int64_t index, supplier_t * s)
 {
-	DSS_HUGE        i, bad_press, noise, offset, type;
+	int64_t        i, bad_press, noise, offset, type;
 	static int      bInit = 0;
 	static char     szFormat[100];
 
@@ -358,7 +324,7 @@ mk_supp(DSS_HUGE index, supplier_t * s)
 
 struct
 {
-	char           *mdes;
+	const char           *mdes;
 	long            days;
 	long            dcnt;
 }               months[] =
@@ -406,7 +372,7 @@ struct
 };
 
 long
-mk_time(DSS_HUGE index, dss_time_t * t)
+mk_time(int64_t index, dss_time_t * t)
 {
 	long            m = 0;
 	long            y;
@@ -428,7 +394,7 @@ mk_time(DSS_HUGE index, dss_time_t * t)
 }
 
 int
-mk_nation(DSS_HUGE index, code_t * c)
+mk_nation(int64_t index, code_t * c)
 {
 	c->code = index - 1;
 	c->text = nations.list[index - 1].text;
@@ -439,7 +405,7 @@ mk_nation(DSS_HUGE index, code_t * c)
 }
 
 int
-mk_region(DSS_HUGE index, code_t * c)
+mk_region(int64_t index, code_t * c)
 {
 
 	c->code = index - 1;

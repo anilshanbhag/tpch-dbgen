@@ -1,41 +1,3 @@
-/*
-* $Id: bm_utils.c,v 1.4 2006/04/12 18:00:55 jms Exp $
-*
-* Revision History
-* ===================
-* $Log: bm_utils.c,v $
-* Revision 1.4  2006/04/12 18:00:55  jms
-* add missing parameter to call to gen_seed
-*
-* Revision 1.3  2005/10/14 23:16:54  jms
-* fix for answer set compliance
-*
-* Revision 1.2  2005/01/03 20:08:58  jms
-* change line terminations
-*
-* Revision 1.1.1.1  2004/11/24 23:31:46  jms
-* re-establish external server
-*
-* Revision 1.3  2004/02/18 14:05:53  jms
-* porting changes for LINUX and 64 bit RNG
-*
-* Revision 1.2  2004/01/22 05:49:29  jms
-* AIX porting (AIX 5.1)
-*
-* Revision 1.1.1.1  2003/08/08 21:35:26  jms
-* recreation after CVS crash
-*
-* Revision 1.3  2003/08/08 21:35:26  jms
-* first integration of rng64 for o_custkey and l_partkey
-*
-* Revision 1.2  2003/08/07 17:58:34  jms
-* Convery RNG to 64bit space as preparation for new large scale RNG
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* initial checkin
-*
-*
-*/
  /*
  *
  * Various routines that handle distributions, value selections and
@@ -62,60 +24,17 @@
 #include <time.h>
 #include <errno.h>
 #include <string.h>
-#ifdef HP
-#include <strings.h>
-#endif            /* HP */
 #include <ctype.h>
 #include <math.h>
-#ifndef _POSIX_SOURCE
-#include <malloc.h>
-#endif /* POSIX_SOURCE */
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-/* Lines added by Chuck McDevitt for WIN32 support */
-#ifdef WIN32
-#ifndef _POSIX_
-#include <io.h>
-#ifndef S_ISREG
-#define S_ISREG(m) ( ((m) & _S_IFMT) == _S_IFREG )
-#define S_ISFIFO(m) ( ((m) & _S_IFMT) == _S_IFIFO )
-#endif 
-#endif
-#ifndef stat
-#define stat _stat
-#endif
-#ifndef fdopen
-#define fdopen _fdopen
-#endif
-#ifndef open
-#define open _open
-#endif
-#ifndef O_RDONLY
-#define O_RDONLY _O_RDONLY
-#endif
-#ifndef O_WRONLY
-#define O_WRONLY _O_WRONLY
-#endif
-#ifndef O_CREAT
-#define O_CREAT _O_CREAT
-#endif
-#endif
-/* End of lines added by Chuck McDevitt for WIN32 support */
-#include "dsstypes.h"
-
 
 static char alpha_num[65] =
 "0123456789abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ,";
 
-#if defined(__STDC__) || defined(__cplusplus)
-#define PROTO(s) s
-#else
-#define PROTO(s) ()
-#endif
-
 #ifndef WIN32
-char     *getenv PROTO((const char *name));
+char     *getenv (const char *name);
 #endif
 void usage();
 long *permute_dist(distribution *d, long stream);
@@ -125,15 +44,15 @@ extern seed_t Seed[];
  * env_config: look for a environmental variable setting and return its
  * value; otherwise return the default supplied
  */
-char     *
-env_config(char *var, char *dflt)
+const char     *
+env_config(const char *var, const char *dflt)
 {
    static char *evar;
 
    if ((evar = getenv(var)) != NULL)
-      return (evar);
+      return evar;
    else
-      return (dflt);
+      return dflt;
 }
 
 /*
@@ -145,15 +64,15 @@ yes_no(char *prompt)
     char      reply[128];
 
 #ifdef WIN32
-/* Disable warning about conditional expression is constant */ 
+/* Disable warning about conditional expression is constant */
 #pragma warning(disable:4127)
-#endif 
+#endif
 
     while (1)
         {
 #ifdef WIN32
 #pragma warning(default:4127)
-#endif 
+#endif
         printf("%s [Y/N]: ", prompt);
         fgets(reply, 128, stdin);
         switch (*reply)
@@ -178,7 +97,7 @@ yes_no(char *prompt)
 void
 a_rnd(int min, int max, int column, char *dest)
 {
-   DSS_HUGE      i,
+   int64_t      i,
              len,
              char_int;
 
@@ -203,7 +122,7 @@ void
 e_str(distribution *d, int min, int max, int stream, char *dest)
 {
     char strtmp[MAXAGG_LEN + 1];
-    DSS_HUGE loc;
+    int64_t loc;
     int len;
 
     a_rnd(min, max, stream, dest);
@@ -225,7 +144,7 @@ int
 pick_str(distribution *s, int c, char *target)
 {
     long      i = 0;
-    DSS_HUGE      j;
+    int64_t      j;
 
     RANDOM(j, 1, s->list[s->count - 1].weight, c);
     while (s->list[i].weight < j)
@@ -262,15 +181,15 @@ julian(long date)
     result = STARTDATE;
 
 #ifdef WIN32
-/* Disable warning about conditional expression is constant */ 
+/* Disable warning about conditional expression is constant */
 #pragma warning(disable:4127)
-#endif 
+#endif
 
     while (1)
         {
-#ifdef WIN32 
+#ifdef WIN32
 #pragma warning(default:4127)
-#endif 
+#endif
         yr = result / 1000;
         yend = yr * 1000 + 365 + LEAP(yr);
         if (result + offset > yend)   /* overflow into next year */
@@ -290,7 +209,7 @@ julian(long date)
 * should be rewritten to allow multiple dists in a file
 */
 void
-read_dist(char *path, char *name, distribution *target)
+read_dist(const char *path, const char *name, distribution *target)
 {
 FILE     *fp;
 char      line[256],
@@ -302,7 +221,7 @@ long      weight,
 
     if (d_path == NULL)
 		{
-		sprintf(line, "%s%c%s", 
+		sprintf(line, "%s%c%s",
 			env_config(CONFIG_TAG, CONFIG_DFLT), PATH_SEP, path);
 		fp = fopen(line, "r");
 		OPEN_CHECK(fp, line);
@@ -378,7 +297,7 @@ long      weight,
  */
 
 FILE     *
-tbl_open(int tbl, char *mode)
+tbl_open(int tbl, const char *mode)
 {
     char      prompt[256];
     char      fullpath[256];
@@ -446,7 +365,7 @@ agg_str(distribution *set, long count, long col, char *dest)
 
 
 long
-dssncasecmp(char *s1, char *s2, int n)
+dssncasecmp(const char *s1, const char *s2, int n)
 {
     for (; n > 0; ++s1, ++s2, --n)
         if (tolower(*s1) != tolower(*s2))
@@ -457,7 +376,7 @@ dssncasecmp(char *s1, char *s2, int n)
 }
 
 long
-dsscasecmp(char *s1, char *s2)
+dsscasecmp(const char *s1, const char *s2)
 {
     for (; tolower(*s1) == tolower(*s2); ++s1, ++s2)
         if (*s1 == '\0')
@@ -534,7 +453,7 @@ mk_ascdate(void)
 {
     char **m;
     dss_time_t t;
-    DSS_HUGE i;
+    int64_t i;
 
     m = (char**) malloc((size_t)(TOTDATE * sizeof (char *)));
     MALLOC_CHECK(m);
@@ -554,12 +473,12 @@ mk_ascdate(void)
  * seed generation routine in speed_seed.c. Note: assumes that tables are completely independent.
  * Returns the number of rows to be generated by the named step.
  */
-DSS_HUGE
-set_state(int table, long sf, long procs, long step, DSS_HUGE *extra_rows)
+int64_t
+set_state(int table, long sf, long procs, long step, int64_t *extra_rows)
 {
     int i;
-	DSS_HUGE rowcount, remainder, result;
-	
+	int64_t rowcount, remainder, result;
+
     if (sf == 0 || step == 0)
         return(0);
 
@@ -576,7 +495,7 @@ set_state(int table, long sf, long procs, long step, DSS_HUGE *extra_rows)
 			tdefs[table].gen_seed(0, rowcount);
 		/* need to set seeds of child in case there's a dependency */
 		/* NOTE: this assumes that the parent and child have the same base row count */
-			if (tdefs[table].child != NONE) 
+			if (tdefs[table].child != NONE)
 			tdefs[tdefs[table].child].gen_seed(0,rowcount);
 		}
 	if (step > procs)	/* moving to the end to generate updates */

@@ -63,12 +63,12 @@
 #define MAX_COLOR 92
 long name_bits[MAX_COLOR / BITS_PER_LONG];
 extern seed_t Seed[];
-void fakeVStr(int nAvg, long nSeed, DSS_HUGE nCount);
-void NthElement (DSS_HUGE N, DSS_HUGE *StartSeed);
+void fakeVStr(int nAvg, long nSeed, int64_t nCount);
+void NthElement (int64_t N, int64_t *StartSeed);
 
 
-void 
-advanceStream(int nStream, DSS_HUGE nCalls, int bUse64Bit)
+void
+advanceStream(int nStream, int64_t nCalls, int bUse64Bit)
 {
    if (bUse64Bit)
       Seed[nStream].value = AdvanceRand64(Seed[nStream].value, nCalls);
@@ -89,8 +89,8 @@ advanceStream(int nStream, DSS_HUGE nCalls, int bUse64Bit)
 /* The book says that this will work if MAXINT for the type you choose    */
 /* is at least 2**46  - 1, so 64 bits is more than you *really* need      */
 
-static DSS_HUGE Multiplier = 16807;      /* or whatever nonstandard */
-static DSS_HUGE Modulus =  2147483647;   /* trick you use to get 64 bit int */
+static int64_t Multiplier = 16807;      /* or whatever nonstandard */
+static int64_t Modulus =  2147483647;   /* trick you use to get 64 bit int */
 
 /* Advances value of Seed after N applications of the random number generator
    with multiplier Mult and given Modulus.
@@ -109,10 +109,10 @@ static DSS_HUGE Modulus =  2147483647;   /* trick you use to get 64 bit int */
 */
 
 /* Nth Element of sequence starting with StartSeed */
-void NthElement (DSS_HUGE N, DSS_HUGE *StartSeed)
+void NthElement (int64_t N, int64_t *StartSeed)
    {
-   DSS_HUGE Z;
-   DSS_HUGE Mult;
+   int64_t Z;
+   int64_t Mult;
    static int ln=-1;
    int i;
 
@@ -122,7 +122,7 @@ void NthElement (DSS_HUGE N, DSS_HUGE *StartSeed)
        fprintf(stderr, "%c\b", lnoise[i]);
        }
    Mult = Multiplier;
-   Z = (DSS_HUGE) *StartSeed;
+   Z = (int64_t) *StartSeed;
    while (N > 0 )
       {
       if (N % 2 != 0)    /* testing for oddness, this seems portable */
@@ -140,13 +140,13 @@ void NthElement (DSS_HUGE N, DSS_HUGE *StartSeed)
 void
 fake_a_rnd(int min, int max, int column)
 {
-   DSS_HUGE len;
-   DSS_HUGE itcount;
+   int64_t len;
+   int64_t itcount;
 
    RANDOM(len, min, max, column);
    if (len % 5L == 0)
       itcount = len/5;
-   else 
+   else
 	   itcount = len/5 + 1L;
    NthElement(itcount, &Seed[column].usage);
 #ifdef RNG_TEST
@@ -156,25 +156,25 @@ fake_a_rnd(int min, int max, int column)
 }
 
 
-long 
-sd_part(int child, DSS_HUGE skip_count)
+long
+sd_part(int child, int64_t skip_count)
 {
    int i;
- 
+
    for (i=P_MFG_SD; i<= P_CNTR_SD; i++)
        ADVANCE_STREAM(i, skip_count);
- 
+
    ADVANCE_STREAM(P_CMNT_SD, skip_count * 2);
    ADVANCE_STREAM(P_NAME_SD, skip_count * 92);
 
    return(0L);
 }
 
-long 
-sd_line(int child, DSS_HUGE skip_count)
+long
+sd_line(int child, int64_t skip_count)
 	{
 	int i,j;
-	
+
 	for (j=0; j < O_LCNT_MAX; j++)
 	{
 		for (i=L_QTY_SD; i<= L_RFLG_SD; i++)
@@ -186,19 +186,19 @@ sd_line(int child, DSS_HUGE skip_count)
 				ADVANCE_STREAM(i, skip_count);
 		ADVANCE_STREAM(L_CMNT_SD, skip_count * 2);
 	}
-	
+
 	/* need to special case this as the link between master and detail */
 	if (child == 1)
 	{
 		ADVANCE_STREAM(O_ODATE_SD, skip_count);
 		ADVANCE_STREAM(O_LCNT_SD, skip_count);
 	}
-	
+
 	return(0L);
 	}
 
-long 
-sd_order(int child, DSS_HUGE skip_count)        
+long
+sd_order(int child, int64_t skip_count)
 {
 	ADVANCE_STREAM(O_LCNT_SD, skip_count);
 /*
@@ -217,10 +217,10 @@ sd_order(int child, DSS_HUGE skip_count)
 }
 
 long
-sd_psupp(int child, DSS_HUGE skip_count)
+sd_psupp(int child, int64_t skip_count)
 	{
 	int j;
-	
+
 	for (j=0; j < SUPP_PER_PART; j++)
 		{
 		ADVANCE_STREAM(PS_QTY_SD, skip_count);
@@ -231,10 +231,10 @@ sd_psupp(int child, DSS_HUGE skip_count)
 	return(0L);
 	}
 
-long 
-sd_cust(int child, DSS_HUGE skip_count)
+long
+sd_cust(int child, int64_t skip_count)
 {
-   
+
    ADVANCE_STREAM(C_ADDR_SD, skip_count * 9);
    ADVANCE_STREAM(C_CMNT_SD, skip_count * 2);
    ADVANCE_STREAM(C_NTRG_SD, skip_count);
@@ -245,7 +245,7 @@ sd_cust(int child, DSS_HUGE skip_count)
 }
 
 long
-sd_supp(int child, DSS_HUGE skip_count)
+sd_supp(int child, int64_t skip_count)
 {
    ADVANCE_STREAM(S_NTRG_SD, skip_count);
    ADVANCE_STREAM(S_PHNE_SD, 3L * skip_count);
@@ -256,6 +256,6 @@ sd_supp(int child, DSS_HUGE skip_count)
    ADVANCE_STREAM(BBB_JNK_SD, skip_count);
    ADVANCE_STREAM(BBB_OFFSET_SD, skip_count);
    ADVANCE_STREAM(BBB_TYPE_SD, skip_count);      /* avoid one trudge */
-   
+
    return(0L);
 }

@@ -1,52 +1,6 @@
-/*
-* $Id: varsub.c,v 1.9 2008/03/20 16:38:34 jms Exp $
-*
-* Revision History
-* ===================
-* $Log: varsub.c,v $
-* Revision 1.9  2008/03/20 16:38:34  jms
-* q14/q15: range correction
-*
-* Revision 1.8  2008/03/20 16:36:47  jms
-* q14/15 format change
-*
-* Revision 1.7  2006/05/31 22:25:21  jms
-* Rework UnifInt calls in varsub to handle lack of PROTO defn in windows
-*
-* Revision 1.6  2006/05/25 22:30:44  jms
-* qgen porting for 32b/64b
-*
-* Revision 1.5  2006/05/25 16:08:52  jms
-* Rework UnifInt call for query 3
-*
-* Revision 1.4  2006/04/26 23:20:05  jms
-* Data type clenaup for qgen
-*
-* Revision 1.3  2005/11/03 14:50:44  jms
-* solaris porting changes
-*
-* Revision 1.2  2005/01/03 20:08:59  jms
-* change line terminations
-*
-* Revision 1.1.1.1  2004/11/24 23:31:47  jms
-* re-establish external server
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* recreation after CVS crash
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* initial checkin
-*
-*
-*/
 #include "config.h"
 #include <stdio.h>
-#ifndef _POSIX_SOURCE
-#include <malloc.h>
-#endif /* POSIX_SOURCE */
-#if (defined(_POSIX_)||!defined(WIN32))
 #include <unistd.h>
-#endif /* WIN32 */
 #include <string.h>
 #include "config.h"
 #include "dss.h"
@@ -69,7 +23,7 @@ long sizes[50] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,
 				21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,
 				41,42,43,44,45,46,47,48,49,50};
 long ccode[25] = {10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34};
-char *defaults[24][11] =
+const char *defaults[24][11] =
 {
     {"90",              NULL,                   NULL,
         NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},  /* 1 */
@@ -123,8 +77,8 @@ varsub(int qnum, int vnum, int flags)
     long *lptr;
     char *ptr;
     int i = 0;
-    DSS_HUGE tmp_date, tmp1, tmp2;
-	
+    int64_t tmp_date, tmp1, tmp2;
+
     if (!bInit)
     {
         sprintf(formats[4], "19%s-%s-01", HUGE_DATE_FORMAT, HUGE_DATE_FORMAT);
@@ -149,12 +103,12 @@ varsub(int qnum, int vnum, int flags)
 			switch(qnum)
 			{
 			case 1:
-				sprintf(param[1], HUGE_FORMAT, UnifInt((DSS_HUGE)60,(DSS_HUGE)120,qnum));
+				sprintf(param[1], HUGE_FORMAT, UnifInt((int64_t)60,(int64_t)120,qnum));
 				param[2][0] = '\0';
 				break;
 			case 2:
 				sprintf(param[1], HUGE_FORMAT,
-					UnifInt((DSS_HUGE)P_SIZE_MIN, (DSS_HUGE)P_SIZE_MAX, qnum));
+					UnifInt((int64_t)P_SIZE_MIN, (int64_t)P_SIZE_MAX, qnum));
 				pick_str(&p_types_set, qnum, param[3]);
 				ptr = param[3] + (int)strlen(param[3]);
 				while (*(ptr - 1) != ' ') ptr--;
@@ -166,7 +120,7 @@ varsub(int qnum, int vnum, int flags)
 				pick_str(&c_mseg_set, qnum, param[1]);
 				/*
 				* pick a random offset within the month of march and add the
-				* appropriate magic numbers to position the output functions 
+				* appropriate magic numbers to position the output functions
 				* at the start of March '95
 				*/
             RANDOM(tmp_date, 0, 30, qnum);
@@ -174,23 +128,23 @@ varsub(int qnum, int vnum, int flags)
 				param[3][0] = '\0';
 				break;
 			case 4:
-				tmp_date = UnifInt((DSS_HUGE)1,(DSS_HUGE)58,qnum);
+				tmp_date = UnifInt((int64_t)1,(int64_t)58,qnum);
 				sprintf(param[1],formats[4],
 					93 + tmp_date/12, tmp_date%12 + 1);
 				param[2][0] = '\0';
 				break;
 			case 5:
 				pick_str(&regions, qnum, param[1]);
-				tmp_date = UnifInt((DSS_HUGE)93, (DSS_HUGE)97,qnum);
+				tmp_date = UnifInt((int64_t)93, (int64_t)97,qnum);
 				sprintf(param[2], formats[5], tmp_date);
 				param[3][0] = '\0';
 				break;
 			case 6:
-				tmp_date = UnifInt((DSS_HUGE)93,(DSS_HUGE)97,qnum);
+				tmp_date = UnifInt((int64_t)93,(int64_t)97,qnum);
 				sprintf(param[1], formats[6], tmp_date);
-				sprintf(param[2], formats[7], 
-                                    UnifInt((DSS_HUGE)2, (DSS_HUGE)9, qnum));
-				sprintf(param[3], HUGE_FORMAT, UnifInt((DSS_HUGE)24, (DSS_HUGE)25, qnum));
+				sprintf(param[2], formats[7],
+                                    UnifInt((int64_t)2, (int64_t)9, qnum));
+				sprintf(param[3], HUGE_FORMAT, UnifInt((int64_t)24, (int64_t)25, qnum));
 				param[4][0] = '\0';
 				break;
 			case 7:
@@ -210,7 +164,7 @@ varsub(int qnum, int vnum, int flags)
 				param[2][0] = '\0';
 				break;
 			case 10:
-				tmp_date = UnifInt((DSS_HUGE)1,(DSS_HUGE)24,qnum);
+				tmp_date = UnifInt((int64_t)1,(int64_t)24,qnum);
 				sprintf(param[1],formats[10],
 					93 + tmp_date/12, tmp_date%12 + 1);
 				param[2][0] = '\0';
@@ -223,7 +177,7 @@ varsub(int qnum, int vnum, int flags)
 			case 12:
 				tmp_date = pick_str(&l_smode_set, qnum, param[1]);
 				while (tmp_date == pick_str(&l_smode_set, qnum, param[2]));
-				tmp_date = UnifInt((DSS_HUGE)93,(DSS_HUGE)97,qnum);
+				tmp_date = UnifInt((int64_t)93,(int64_t)97,qnum);
 				sprintf(param[3], formats[12], tmp_date);
 				param[4][0] = '\0';
 				break;
@@ -233,20 +187,20 @@ varsub(int qnum, int vnum, int flags)
 				param[3][0] = '\0';
 				break;
 			case 14:
-				tmp_date = UnifInt((DSS_HUGE)0,(DSS_HUGE)59,qnum);
+				tmp_date = UnifInt((int64_t)0,(int64_t)59,qnum);
 				sprintf(param[1],formats[14],
 					93 + tmp_date/12, tmp_date%12 + 1);
 				param[2][0] = '\0';
 				break;
 			case 15:
-				tmp_date = UnifInt((DSS_HUGE)0,(DSS_HUGE)57,qnum);
+				tmp_date = UnifInt((int64_t)0,(int64_t)57,qnum);
 				sprintf(param[1],formats[15],
 					93 + tmp_date/12, tmp_date%12 + 1);
 				param[2][0] = '\0';
 				break;
 			case 16:
-				tmp1 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum); 
-				tmp2 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum);
+				tmp1 = UnifInt((int64_t)1, (int64_t)5, qnum);
+				tmp2 = UnifInt((int64_t)1, (int64_t)5, qnum);
 				sprintf(param[1], formats[16], tmp1, tmp2);
 				pick_str(&p_types_set, qnum, param[2]);
 				ptr = param[2] + (int)strlen(param[2]);
@@ -258,34 +212,34 @@ varsub(int qnum, int vnum, int flags)
 					sprintf(param[i], "%ld", sizes[i - 3]);
 				break;
 			case 17:
-				tmp1 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum); 
-				tmp2 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum);
+				tmp1 = UnifInt((int64_t)1, (int64_t)5, qnum);
+				tmp2 = UnifInt((int64_t)1, (int64_t)5, qnum);
 				sprintf(param[1], formats[17], tmp1, tmp2);
 				pick_str(&p_cntr_set, qnum, param[2]);
 				param[3][0] = '\0';
 				break;
 			case 18:
-				sprintf(param[1], HUGE_FORMAT, UnifInt((DSS_HUGE)312, (DSS_HUGE)315, qnum));
+				sprintf(param[1], HUGE_FORMAT, UnifInt((int64_t)312, (int64_t)315, qnum));
 				param[2][0] = '\0';
 				break;
 			case 19:
-				tmp1 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum); 
-				tmp2 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum);
+				tmp1 = UnifInt((int64_t)1, (int64_t)5, qnum);
+				tmp2 = UnifInt((int64_t)1, (int64_t)5, qnum);
 				sprintf(param[1], formats[19], tmp1, tmp2);
-				tmp1 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum); 
-				tmp2 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum);
+				tmp1 = UnifInt((int64_t)1, (int64_t)5, qnum);
+				tmp2 = UnifInt((int64_t)1, (int64_t)5, qnum);
 				sprintf(param[2], formats[19], tmp1, tmp2);
-				tmp1 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum); 
-				tmp2 = UnifInt((DSS_HUGE)1, (DSS_HUGE)5, qnum);
+				tmp1 = UnifInt((int64_t)1, (int64_t)5, qnum);
+				tmp2 = UnifInt((int64_t)1, (int64_t)5, qnum);
 				sprintf(param[3], formats[19], tmp1, tmp2);
-				sprintf(param[4], HUGE_FORMAT, UnifInt((DSS_HUGE)1, (DSS_HUGE)10, qnum));
-				sprintf(param[5], HUGE_FORMAT, UnifInt((DSS_HUGE)10, (DSS_HUGE)20, qnum));
-				sprintf(param[6], HUGE_FORMAT, UnifInt((DSS_HUGE)20, (DSS_HUGE)30, qnum));
+				sprintf(param[4], HUGE_FORMAT, UnifInt((int64_t)1, (int64_t)10, qnum));
+				sprintf(param[5], HUGE_FORMAT, UnifInt((int64_t)10, (int64_t)20, qnum));
+				sprintf(param[6], HUGE_FORMAT, UnifInt((int64_t)20, (int64_t)30, qnum));
 				param[7][0] = '\0';
 				break;
 			case 20:
 				pick_str(&colors, qnum, param[1]);
-				tmp_date = UnifInt((DSS_HUGE)93,(DSS_HUGE)97,qnum);
+				tmp_date = UnifInt((int64_t)93,(int64_t)97,qnum);
 				sprintf(param[2], formats[20], tmp_date);
 				pick_str(&nations2, qnum, param[3]);
 				param[4][0] = '\0';
@@ -305,13 +259,13 @@ varsub(int qnum, int vnum, int flags)
 			case 24:
                 break;
 			default:
-				fprintf(stderr, 
-					"No variable definitions available for query %d\n", 
+				fprintf(stderr,
+					"No variable definitions available for query %d\n",
                     qnum);
 				return;
         }
     }
-	
+
     if (flags & LOG)
 	{
         if (lfp == NULL)
@@ -340,7 +294,7 @@ varsub(int qnum, int vnum, int flags)
     }
     else
 	{
-        if (flags & DFLT)   
+        if (flags & DFLT)
 		{
             /* to allow -d to work at all scale factors */
             if (qnum == 11 && vnum == 2)
@@ -349,11 +303,11 @@ varsub(int qnum, int vnum, int flags)
                 if (defaults[qnum - 1][vnum - 1])
                     fprintf(ofp, "%s", defaults[qnum - 1][vnum - 1]);
                 else
-					fprintf(stderr, 
+					fprintf(stderr,
 					"Bad default request (q: %d, p: %d)\n",
 					qnum, vnum);
 		}
-        else        
+        else
 		{
             if (param[vnum] && vnum <= MAX_PARAM)
                 fprintf(ofp, "%s", param[vnum]);

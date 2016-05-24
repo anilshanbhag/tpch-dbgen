@@ -1,69 +1,14 @@
-/*
-* $Id: driver.c,v 1.7 2008/09/24 22:35:21 jms Exp $
-*
-* Revision History
-* ===================
-* $Log: driver.c,v $
-* Revision 1.7  2008/09/24 22:35:21  jms
-* remove build number header
-*
-* Revision 1.6  2008/09/24 22:30:29  jms
-* remove build number from default header
-*
-* Revision 1.5  2008/03/21 17:38:39  jms
-* changes for 2.6.3
-*
-* Revision 1.4  2006/04/26 23:01:10  jms
-* address update generation problems
-*
-* Revision 1.3  2005/10/28 02:54:35  jms
-* add release.h changes
-*
-* Revision 1.2  2005/01/03 20:08:58  jms
-* change line terminations
-*
-* Revision 1.1.1.1  2004/11/24 23:31:46  jms
-* re-establish external server
-*
-* Revision 1.5  2004/04/07 20:17:29  jms
-* bug #58 (join fails between order/lineitem)
-*
-* Revision 1.4  2004/02/18 16:26:49  jms
-* 32/64 bit changes for overflow handling needed additional changes when ported back to windows
-*
-* Revision 1.3  2004/01/22 05:49:29  jms
-* AIX porting (AIX 5.1)
-*
-* Revision 1.2  2004/01/22 03:54:12  jms
-* 64 bit support changes for customer address
-*
-* Revision 1.1.1.1  2003/08/08 21:50:33  jms
-* recreation after CVS crash
-*
-* Revision 1.3  2003/08/08 21:35:26  jms
-* first integration of rng64 for o_custkey and l_partkey
-*
-* Revision 1.2  2003/08/07 17:58:34  jms
-* Convery RNG to 64bit space as preparation for new large scale RNG
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* initial checkin
-*
-*
-*/
 /* main driver for dss banchmark */
 
 #define DECLARER				/* EXTERN references get defined here */
 #define NO_FUNC (int (*) ()) NULL	/* to clean up tdefs */
-#define NO_LFUNC (long (*) ()) NULL		/* to clean up tdefs */
+#define NO_LFUNC (long (*) (int, int64_t)) NULL		/* to clean up tdefs */
 
 #include "config.h"
 #include "release.h"
 #include <stdlib.h>
-#if (defined(_POSIX_)||!defined(WIN32))		/* Change for Windows NT */
 #include <unistd.h>
 #include <sys/wait.h>
-#endif /* WIN32 */
 #include <stdio.h>				/* */
 #include <limits.h>
 #include <math.h>
@@ -74,34 +19,8 @@
 #ifdef HP
 #include <strings.h>
 #endif
-#if (defined(WIN32)&&!defined(_POSIX_))
-#include <process.h>
-#pragma warning(disable:4201)
-#pragma warning(disable:4214)
-#pragma warning(disable:4514)
-#define WIN32_LEAN_AND_MEAN
-#define NOATOM
-#define NOGDICAPMASKS
-#define NOMETAFILE
-#define NOMINMAX
-#define NOMSG
-#define NOOPENFILE
-#define NORASTEROPS
-#define NOSCROLL
-#define NOSOUND
-#define NOSYSMETRICS
-#define NOTEXTMETRIC
-#define NOWH
-#define NOCOMM
-#define NOKANJI
-#define NOMCX
-#include <windows.h>
-#pragma warning(default:4201)
-#pragma warning(default:4214)
-#endif
 
 #include "dss.h"
-#include "dsstypes.h"
 
 /*
 * Function prototypes
@@ -109,15 +28,15 @@
 void	usage (void);
 void	kill_load (void);
 int		pload (int tbl);
-void	gen_tbl (int tnum, DSS_HUGE start, DSS_HUGE count, long upd_num);
-int		pr_drange (int tbl, DSS_HUGE min, DSS_HUGE cnt, long num);
+void	gen_tbl (int tnum, int64_t start, int64_t count, long upd_num);
+int		pr_drange (int tbl, int64_t min, int64_t cnt, long num);
 int		set_files (int t, int pload);
 int		partial (int, int);
 
 
 extern int optind, opterr;
 extern char *optarg;
-DSS_HUGE rowcnt = 0, minrow = 0;
+int64_t rowcnt = 0, minrow = 0;
 long upd_num = 0;
 double flt_scale;
 #if (defined(WIN32)&&!defined(_POSIX_))
@@ -138,14 +57,14 @@ static int bTableSet = 0;
 * the following is based on the tdef structure defined in dss.h as:
 * typedef struct
 * {
-* char     *name;            -- name of the table; 
+* char     *name;            -- name of the table;
 *                               flat file output in <name>.tbl
-* long      base;            -- base scale rowcount of table; 
+* long      base;            -- base scale rowcount of table;
 *                               0 if derived
 * int       (*loader) ();    -- function to present output
 * long      (*gen_seed) ();  -- functions to seed the RNG
 * int       child;           -- non-zero if there is an associated detail table
-* unsigned long vtotal;      -- "checksum" total 
+* unsigned long vtotal;      -- "checksum" total
 * }         tdef;
 *
 */
@@ -153,28 +72,28 @@ static int bTableSet = 0;
 /*
 * flat file print functions; used with -F(lat) option
 */
-int pr_cust (customer_t * c, int mode);
-int pr_line (order_t * o, int mode);
-int pr_order (order_t * o, int mode);
-int pr_part (part_t * p, int mode);
-int pr_psupp (part_t * p, int mode);
-int pr_supp (supplier_t * s, int mode);
-int pr_order_line (order_t * o, int mode);
-int pr_part_psupp (part_t * p, int mode);
-int pr_nation (code_t * c, int mode);
-int pr_region (code_t * c, int mode);
+int pr_cust (table_t* c, int mode);
+int pr_line (table_t* o, int mode);
+int pr_order (table_t* o, int mode);
+int pr_part (table_t* p, int mode);
+int pr_psupp (table_t* p, int mode);
+int pr_supp (table_t* s, int mode);
+int pr_order_line (table_t* o, int mode);
+int pr_part_psupp (table_t* p, int mode);
+int pr_nation (table_t* c, int mode);
+int pr_region (table_t* c, int mode);
 
 /*
 * seed generation functions; used with '-O s' option
 */
-long sd_cust (int child, DSS_HUGE skip_count);
-long sd_line (int child, DSS_HUGE skip_count);
-long sd_order (int child, DSS_HUGE skip_count);
-long sd_part (int child, DSS_HUGE skip_count);
-long sd_psupp (int child, DSS_HUGE skip_count);
-long sd_supp (int child, DSS_HUGE skip_count);
-long sd_order_line (int child, DSS_HUGE skip_count);
-long sd_part_psupp (int child, DSS_HUGE skip_count);
+long sd_cust (int child, int64_t skip_count);
+long sd_line (int child, int64_t skip_count);
+long sd_order (int child, int64_t skip_count);
+long sd_part (int child, int64_t skip_count);
+long sd_psupp (int child, int64_t skip_count);
+long sd_supp (int child, int64_t skip_count);
+long sd_order_line (int child, int64_t skip_count);
+long sd_part_psupp (int child, int64_t skip_count);
 
 tdef tdefs[] =
 {
@@ -201,13 +120,13 @@ tdef tdefs[] =
 };
 
 /*
-* re-set default output file names 
+* re-set default output file names
 */
 int
 set_files (int i, int pload)
 {
 	char line[80], *new_name;
-	
+
 	if (table & (1 << i))
 child_table:
 	{
@@ -235,7 +154,7 @@ child_table:
 			goto child_table;
 		}
 	}
-	
+
 	return (0);
 }
 
@@ -274,14 +193,14 @@ load_dists (void)
 	read_dist (env_config (DIST_TAG, DIST_DFLT), "grammar", &grammar);
 	read_dist (env_config (DIST_TAG, DIST_DFLT), "np", &np);
 	read_dist (env_config (DIST_TAG, DIST_DFLT), "vp", &vp);
-	
+
 }
 
 /*
 * generate a particular table
 */
 void
-gen_tbl (int tnum, DSS_HUGE start, DSS_HUGE count, long upd_num)
+gen_tbl (int tnum, int64_t start, int64_t count, long upd_num)
 {
 	static order_t o;
 	supplier_t supp;
@@ -289,11 +208,11 @@ gen_tbl (int tnum, DSS_HUGE start, DSS_HUGE count, long upd_num)
 	part_t part;
 	code_t code;
 	static int completed = 0;
-	DSS_HUGE i;
+	int64_t i;
 
-	DSS_HUGE rows_per_segment=0;
-	DSS_HUGE rows_this_segment=-1;
-	DSS_HUGE residual_rows=0;
+	int64_t rows_per_segment=0;
+	int64_t rows_this_segment=-1;
+	int64_t residual_rows=0;
 
 	if (insert_segments)
 		{
@@ -310,26 +229,25 @@ gen_tbl (int tnum, DSS_HUGE start, DSS_HUGE count, long upd_num)
 		{
 		case LINE:
 		case ORDER:
-  		case ORDER_LINE: 
+  		case ORDER_LINE:
 			mk_order (i, &o, upd_num % 10000);
 
-		  if (insert_segments  && (upd_num > 0))
-			if((upd_num / 10000) < residual_rows)
-				{
-				if((++rows_this_segment) > rows_per_segment) 
-					{						
-					rows_this_segment=0;
-					upd_num += 10000;					
-					}
-				}
-			else
-				{
-				if((++rows_this_segment) >= rows_per_segment) 
+      if (insert_segments  && (upd_num > 0)) {
+			if((upd_num / 10000) < residual_rows) {
+				if((++rows_this_segment) > rows_per_segment)
 					{
 					rows_this_segment=0;
 					upd_num += 10000;
 					}
-				}
+			} else {
+				if((++rows_this_segment) >= rows_per_segment)
+					{
+					rows_this_segment=0;
+					upd_num += 10000;
+					}
+			}
+      }
+
 
 			if (set_seeds == 0)
 				tdefs[tnum].loader(&o, upd_num);
@@ -346,7 +264,7 @@ gen_tbl (int tnum, DSS_HUGE start, DSS_HUGE count, long upd_num)
 			break;
 		case PSUPP:
 		case PART:
-  		case PART_PSUPP: 
+  		case PART_PSUPP:
 			mk_part (i, &part);
 			if (set_seeds == 0)
 				tdefs[tnum].loader(&part, upd_num);
@@ -365,7 +283,7 @@ gen_tbl (int tnum, DSS_HUGE start, DSS_HUGE count, long upd_num)
 		row_stop(tnum);
 		if (set_seeds && (i % tdefs[tnum].base) < 2)
 		{
-			printf("\nSeeds for %s at rowcount %ld\n", tdefs[tnum].comment, i);
+			printf("\nSeeds for %s at rowcount %lld\n", tdefs[tnum].comment, i);
 			dump_seeds(tnum);
 		}
 	}
@@ -420,27 +338,27 @@ usage (void)
 int
 partial (int tbl, int s)
 {
-	DSS_HUGE rowcnt;
-	DSS_HUGE extra;
-	
+	int64_t rowcnt;
+	int64_t extra;
+
 	if (verbose > 0)
 	{
 		fprintf (stderr, "\tStarting to load stage %d of %ld for %s...",
 			s, children, tdefs[tbl].comment);
 	}
-	
+
 	set_files (tbl, s);
-	
+
 	rowcnt = set_state(tbl, scale, children, s, &extra);
 
 	if (s == children)
 		gen_tbl (tbl, rowcnt * (s - 1) + 1, rowcnt + extra, upd_num);
 	else
 		gen_tbl (tbl, rowcnt * (s - 1) + 1, rowcnt, upd_num);
-	
+
 	if (verbose > 0)
 		fprintf (stderr, "done.\n");
-	
+
 	return (0);
 }
 
@@ -449,7 +367,7 @@ process_options (int count, char **vector)
 {
 	int option;
 	FILE *pF;
-	
+
 	while ((option = getopt (count, vector,
 		"b:C:d:fi:hO:P:qs:S:T:U:v")) != -1)
 	switch (option)
@@ -494,7 +412,7 @@ process_options (int count, char **vector)
 				int_scale = (int)(1000 * flt_scale);
 				for (i = PART; i < REGION; i++)
 				{
-					tdefs[i].base = (DSS_HUGE)(int_scale * tdefs[i].base)/1000;
+					tdefs[i].base = (int64_t)(int_scale * tdefs[i].base)/1000;
 					if (tdefs[i].base < 1)
 						tdefs[i].base = 1;
 				}
@@ -655,14 +573,14 @@ void validate_options(void)
 /*
 * MAIN
 *
-* assumes the existance of getopt() to clean up the command 
+* assumes the existance of getopt() to clean up the command
 * line handling
 */
 int
 main (int ac, char **av)
 {
-	DSS_HUGE i;
-	
+	int64_t i;
+
 	table = (1 << CUST) |
 		(1 << SUPP) |
 		(1 << NATION) |
@@ -689,7 +607,7 @@ main (int ac, char **av)
 		ORDERS_PER_CUST;			/* have to do this after init */
 	children = 1;
 	d_path = NULL;
-	
+
 #ifdef NO_SUPPORT
 	signal (SIGINT, exit);
 #endif /* NO_SUPPORT */
@@ -704,7 +622,7 @@ main (int ac, char **av)
 	}
 	spawn_args[ac] = NULL;
 #endif
-	
+
 	if (verbose >= 0)
 		{
 		fprintf (stderr,
@@ -712,7 +630,7 @@ main (int ac, char **av)
 			NAME, VERSION, RELEASE, PATCH);
 		fprintf (stderr, "Copyright %s %s\n", TPC, C_DATES);
 		}
-	
+
 	load_dists ();
 #ifdef RNG_TEST
 	for (i=0; i <= MAX_STREAM; i++)
@@ -721,20 +639,20 @@ main (int ac, char **av)
 	/* have to do this after init */
 	tdefs[NATION].base = nations.count;
 	tdefs[REGION].base = regions.count;
-	
-	/* 
-	* updates are never parallelized 
+
+	/*
+	* updates are never parallelized
 	*/
 	if (updates)
 		{
-		/* 
+		/*
 		 * set RNG to start generating rows beyond SF=scale
 		 */
-		set_state (ORDER, scale, 100, 101, &i); 
+		set_state (ORDER, scale, 100, 101, &i);
 		rowcnt = (int)(tdefs[ORDER_LINE].base / 10000 * scale * UPD_PCT);
 		if (step > 0)
 			{
-			/* 
+			/*
 			 * adjust RNG for any prior update generation
 			 */
 	      for (i=1; i < step; i++)
@@ -766,7 +684,7 @@ main (int ac, char **av)
 
 		exit (0);
 		}
-	
+
 	/**
 	** actual data generation section starts here
 	**/
@@ -795,6 +713,6 @@ main (int ac, char **av)
 					fprintf (stderr, "done.\n");
 			}
 		}
-			
+
 		return (0);
 }

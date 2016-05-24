@@ -1,24 +1,4 @@
 /*
-* $Id: bcd2.c,v 1.2 2005/01/03 20:08:58 jms Exp $
-*
-* Revision History
-* ===================
-* $Log: bcd2.c,v $
-* Revision 1.2  2005/01/03 20:08:58  jms
-* change line terminations
-*
-* Revision 1.1.1.1  2004/11/24 23:31:45  jms
-* re-establish external server
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* recreation after CVS crash
-*
-* Revision 1.1.1.1  2003/04/03 18:54:21  jms
-* initial checkin
-*
-*
-*/
-/*
  * bcd.c: conversion routines for multi-byte arithmetic
  *
  * defined routines:
@@ -53,12 +33,12 @@
         *low = (*low & (0xFFFFFFF ^ (0xF << (4 * (num))))); \
         *low |= (value << (4 * (num))); \
         }
-int 
+int
 bin_bcd2(long binary, long *low_res, long *high_res)
 {
     char number[15],
          *current;
-    int count;  
+    int count;
     long *dest;
 
 	*low_res = *high_res = 0;
@@ -77,7 +57,7 @@ bcd2_bin(long *dest, long bcd)
 {
     int count;
     long mask;
-         
+
     count = DIGITS_PER_LONG - 1;
     mask = 0xF000000;
 	*dest = 0;
@@ -101,7 +81,7 @@ bcd2_add(long *bcd_low, long *bcd_high, long addend)
     carry = 0;
     for (digit=0; digit < 14; digit++)
         {
-        res = GET_DIGIT(digit, *bcd_low, *bcd_high); 
+        res = GET_DIGIT(digit, *bcd_low, *bcd_high);
         res += GET_DIGIT(digit, tmp_lo, tmp_hi);
         res += carry;
         carry = res / 10;
@@ -121,10 +101,10 @@ bcd2_sub(long *bcd_low, long *bcd_high, long subend)
     carry = 0;
     for (digit=0; digit < 14; digit++)
         {
-        res = GET_DIGIT(digit, *bcd_low, *bcd_high); 
+        res = GET_DIGIT(digit, *bcd_low, *bcd_high);
         res -= GET_DIGIT(digit, tmp_lo, tmp_hi);
         res -= carry;
-        if (res < 0) 
+        if (res < 0)
 			{
 			res += 10;
 			carry = 1;
@@ -148,7 +128,7 @@ bcd2_mul(long *bcd_low, long *bcd_high, long multiplier)
     carry = 0;
     for (ldigit=0; ldigit < 14; ldigit++)
         {
-        m1 = GET_DIGIT(ldigit, m_lo, m_hi); 
+        m1 = GET_DIGIT(ldigit, m_lo, m_hi);
         carry = 0;
         for (udigit=0; udigit < 14; udigit++)
             {
@@ -163,7 +143,9 @@ bcd2_mul(long *bcd_low, long *bcd_high, long multiplier)
             carry = res / 10;
             res %= 10;
             if (udigit + ldigit < 14)
-                SET_DIGIT(res, udigit + ldigit, bcd_low, bcd_high);
+              {
+              SET_DIGIT(res, udigit + ldigit, bcd_low, bcd_high);
+              }
             }
         }
     return(carry);
@@ -173,7 +155,7 @@ int
 bcd2_div(long *bcd_low, long *bcd_high, long divisor)
 {
     long tmp_lo, tmp_hi, carry, d1, res, digit;
-    
+
 
     carry = 0;
     tmp_lo = *bcd_low;
@@ -182,7 +164,7 @@ bcd2_div(long *bcd_low, long *bcd_high, long divisor)
     for (digit=13; digit >= 0; digit--)
         {
         d1 = GET_DIGIT(digit, tmp_lo, tmp_hi);
-        d1 += 10 * carry; 
+        d1 += 10 * carry;
         res = d1 / divisor;
         carry = d1 % divisor;
         SET_DIGIT(res, digit, bcd_low, bcd_high);
@@ -208,7 +190,7 @@ bcd2_cmp(long *low1, long *high1, long comp)
 	long temp = 0;
 
     bcd2_bin(&temp, *high1);
-	if (temp > 214) 
+	if (temp > 214)
 		return(1);
     bcd2_bin(&temp, *low1);
 	return(temp - comp);
@@ -231,7 +213,7 @@ bcd2_bin(&bin, high_bcd);
 bcd2_bin(&bin, low_bcd);
 printf( "%ld\n", bin);
 for (i=9; i >= 0; i--)
-    printf("%dth digit in %d is %d\n", 
+    printf("%dth digit in %d is %d\n",
         i, bin, GET_DIGIT(i, low_bcd, high_bcd));
 bcd2_add(&low_bcd, &high_bcd, MAXINT);
 bin = 0;
