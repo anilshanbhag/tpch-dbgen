@@ -29,20 +29,20 @@ PROG1 = dbgen$(EXE)
 PROG2 = qgen$(EXE)
 PROGS = $(PROG1) $(PROG2)
 #
-HDR1 = dss.h rnd.h config.h dsstypes.h shared.h bcd2.h rng64.h release.h
+HDR1 = dss.h rnd.h config.h dsstypes.h shared.h rng64.h release.h
 HDR2 = tpcd.h permute.h
 HDR  = $(HDR1) $(HDR2)
 #
-SRC1 = build.cpp driver.cpp bm_utils.cpp rnd.cpp print.cpp load_stub.cpp bcd2.cpp \
+SRC1 = build.cpp driver.cpp bm_utils.cpp rnd.cpp print.cpp load_stub.cpp \
 	speed_seed.cpp text.cpp permute.cpp rng64.cpp
 SRC2 = qgen.cpp varsub.cpp
 SRC  = $(SRC1) $(SRC2)
 #
 OBJ1 = build$(OBJ) driver$(OBJ) bm_utils$(OBJ) rnd$(OBJ) print$(OBJ) \
-	load_stub$(OBJ) bcd2$(OBJ) speed_seed$(OBJ) text$(OBJ) permute$(OBJ) \
+	load_stub$(OBJ) speed_seed$(OBJ) text$(OBJ) permute$(OBJ) \
 	rng64$(OBJ)
 OBJ2 = build$(OBJ) bm_utils$(OBJ) qgen$(OBJ) rnd$(OBJ) varsub$(OBJ) \
-	text$(OBJ) bcd2$(OBJ) permute$(OBJ) speed_seed$(OBJ) rng64$(OBJ)
+	text$(OBJ) permute$(OBJ) speed_seed$(OBJ) rng64$(OBJ)
 OBJS = $(OBJ1) $(OBJ2)
 #
 SETS = dists.dss

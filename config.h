@@ -39,17 +39,16 @@
 
 #define STDLIB_HAS_GETOPT
 #define SUPPORT_64BITS
-#define HUGE_FORMAT	"%lld"
-#define HUGE_DATE_FORMAT	"%02lld"
-#define RNG_A	6364136223846793005ull
-#define RNG_C	1ull
+#define HUGE_FORMAT "%lld"
+#define HUGE_DATE_FORMAT "%02lld"
+#define RNG_A 6364136223846793005ull
+#define RNG_C 1ull
 
 #define KILL(pid) kill(SIGUSR1, pid)
 #define SET_HANDLER(proc) signal(SIGUSR1, proc)
-#define SPAWN   fork
+#define SPAWN fork
 #define WAIT(res, pid) wait(res)
 
 #define PATH_SEP '/'
 
 #define DOUBLE_CAST (double)
-

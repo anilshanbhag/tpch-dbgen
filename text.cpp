@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <stdio.h>				/* */
+#include <stdio.h> /* */
 #include <limits.h>
 #include <math.h>
 #include <ctype.h>
@@ -21,7 +21,7 @@
 #include <string.h>
 #include <errno.h>
 
-#define TEXT_POOL_SIZE (300 * 1024 * 1024)  /* 300MiB */
+#define TEXT_POOL_SIZE (300 * 1024 * 1024) /* 300MiB */
 
 #include "dss.h"
 
@@ -37,51 +37,43 @@
  *	Called By: txt_sentence()
  *	Calls: pick_str()
  */
-static int
-txt_vp(char *dest, int sd)
-{
-	char syntax[MAX_GRAMMAR_LEN + 1],
-		*cptr,
-		*parse_target;
-	distribution *src;
-	int i,
-		res = 0;
+static int txt_vp(char *dest, int sd) {
+  char syntax[MAX_GRAMMAR_LEN + 1], *cptr, *parse_target;
+  distribution *src;
+  int i, res = 0;
 
+  pick_str(&vp, sd, &syntax[0]);
+  parse_target = syntax;
+  while ((cptr = strtok(parse_target, " ")) != NULL) {
+    src = NULL;
+    switch (*cptr) {
+    case 'D':
+      src = &adverbs;
+      break;
+    case 'V':
+      src = &verbs;
+      break;
+    case 'X':
+      src = &auxillaries;
+      break;
+    } /* end of POS switch statement */
+    i = pick_str(src, sd, dest);
+    i = (int)strlen(DIST_MEMBER(src, i));
+    dest += i;
+    res += i;
+    if (*(++cptr)) /* miscelaneous fillagree, like punctuation */
+    {
+      dest += 1;
+      res += 1;
+      *dest = *cptr;
+    }
+    *dest = ' ';
+    dest++;
+    res++;
+    parse_target = NULL;
+  } /* end of while loop */
 
-	pick_str(&vp, sd, &syntax[0]);
-	parse_target = syntax;
-	while ((cptr = strtok(parse_target, " ")) != NULL)
-	{
-		src = NULL;
-		switch(*cptr)
-		{
-		case 'D':
-			src = &adverbs;
-			break;
-		case 'V':
-			src = &verbs;
-			break;
-		case 'X':
-			src = &auxillaries;
-			break;
-		}	/* end of POS switch statement */
-		i = pick_str(src, sd, dest);
-		i = (int)strlen(DIST_MEMBER(src, i));
-		dest += i;
-		res += i;
-		if (*(++cptr))	/* miscelaneous fillagree, like punctuation */
-		{
-			dest += 1;
-			res += 1;
-			*dest = *cptr;
-		}
-		*dest = ' ';
-		dest++;
-		res++;
-		parse_target = NULL;
-	}	/* end of while loop */
-
-	return(res);
+  return (res);
 }
 
 /*
@@ -96,54 +88,46 @@ txt_vp(char *dest, int sd)
  *	Called By: txt_sentence()
  *	Calls: pick_str(),
  */
-static int
-txt_np(char *dest, int sd)
-{
-	char syntax[MAX_GRAMMAR_LEN + 1],
-		*cptr,
-		*parse_target;
-	distribution *src;
-	int i,
-		res = 0;
+static int txt_np(char *dest, int sd) {
+  char syntax[MAX_GRAMMAR_LEN + 1], *cptr, *parse_target;
+  distribution *src;
+  int i, res = 0;
 
+  pick_str(&np, sd, &syntax[0]);
+  parse_target = syntax;
+  while ((cptr = strtok(parse_target, " ")) != NULL) {
+    src = NULL;
+    switch (*cptr) {
+    case 'A':
+      src = &articles;
+      break;
+    case 'J':
+      src = &adjectives;
+      break;
+    case 'D':
+      src = &adverbs;
+      break;
+    case 'N':
+      src = &nouns;
+      break;
+    } /* end of POS switch statement */
+    i = pick_str(src, sd, dest);
+    i = (int)strlen(DIST_MEMBER(src, i));
+    dest += i;
+    res += i;
+    if (*(++cptr)) /* miscelaneous fillagree, like punctuation */
+    {
+      *dest = *cptr;
+      dest += 1;
+      res += 1;
+    }
+    *dest = ' ';
+    dest++;
+    res++;
+    parse_target = NULL;
+  } /* end of while loop */
 
-	pick_str(&np, sd, &syntax[0]);
-	parse_target = syntax;
-	while ((cptr = strtok(parse_target, " ")) != NULL)
-	{
-		src = NULL;
-		switch(*cptr)
-		{
-		case 'A':
-			src = &articles;
-			break;
-		case 'J':
-			src = &adjectives;
-			break;
-		case 'D':
-			src = &adverbs;
-			break;
-		case 'N':
-			src = &nouns;
-			break;
-		}	/* end of POS switch statement */
-		i = pick_str(src, sd, dest);
-		i = (int)strlen(DIST_MEMBER(src, i));
-		dest += i;
-		res += i;
-		if (*(++cptr))	/* miscelaneous fillagree, like punctuation */
-		{
-			*dest = *cptr;
-			dest += 1;
-			res += 1;
-		}
-		*dest = ' ';
-		dest++;
-		res++;
-		parse_target = NULL;
-	}	/* end of while loop */
-
-	return(res);
+  return (res);
 }
 
 /*
@@ -158,163 +142,137 @@ txt_np(char *dest, int sd)
  *	Called By: dbg_text()
  *	Calls: pick_str(), txt_np(), txt_vp()
  */
-static int
-txt_sentence(char *dest, int sd)
-{
-	char syntax[MAX_GRAMMAR_LEN + 1],
-		*cptr;
-	int i,
-		res = 0,
-		len = 0;
+static int txt_sentence(char *dest, int sd) {
+  char syntax[MAX_GRAMMAR_LEN + 1], *cptr;
+  int i, res = 0, len = 0;
 
+  pick_str(&grammar, sd, syntax);
+  cptr = syntax;
 
-	pick_str(&grammar, sd, syntax);
-	cptr = syntax;
-
-next_token:	/* I hate goto's, but can't seem to have parent and child use strtok() */
-	while (*cptr && *cptr == ' ')
-		cptr++;
-	if (*cptr == '\0')
-		goto done;
-	switch(*cptr)
-		{
-		case 'V':
-			len = txt_vp(dest, sd);
-			break;
-		case 'N':
-			len = txt_np(dest, sd);
-			break;
-		case 'P':
-			i = pick_str(&prepositions, sd, dest);
-			len = (int)strlen(DIST_MEMBER(&prepositions, i));
-			strcpy((dest + len), " the ");
-			len += 5;
-			len += txt_np(dest + len, sd);
-			break;
-		case 'T':
-			i = pick_str(&terminators, sd, --dest); /*terminators should abut previous word */
-			len = (int)strlen(DIST_MEMBER(&terminators, i));
-			break;
-		}	/* end of POS switch statement */
-		dest += len;
-		res += len;
-		cptr++;
-		if (*cptr && *cptr != ' ')	/* miscelaneous fillagree, like punctuation */
-		{
-			dest += 1;
-			res += 1;
-			*dest = *cptr;
-		}
-		goto next_token;
+next_token
+    : /* I hate goto's, but can't seem to have parent and child use strtok() */
+  while (*cptr && *cptr == ' ')
+    cptr++;
+  if (*cptr == '\0')
+    goto done;
+  switch (*cptr) {
+  case 'V':
+    len = txt_vp(dest, sd);
+    break;
+  case 'N':
+    len = txt_np(dest, sd);
+    break;
+  case 'P':
+    i = pick_str(&prepositions, sd, dest);
+    len = (int)strlen(DIST_MEMBER(&prepositions, i));
+    strcpy((dest + len), " the ");
+    len += 5;
+    len += txt_np(dest + len, sd);
+    break;
+  case 'T':
+    i = pick_str(&terminators, sd,
+                 --dest); /*terminators should abut previous word */
+    len = (int)strlen(DIST_MEMBER(&terminators, i));
+    break;
+  } /* end of POS switch statement */
+  dest += len;
+  res += len;
+  cptr++;
+  if (*cptr && *cptr != ' ') /* miscelaneous fillagree, like punctuation */
+  {
+    dest += 1;
+    res += 1;
+    *dest = *cptr;
+  }
+  goto next_token;
 done:
-	*dest = '\0';
-	return(--res);
+  *dest = '\0';
+  return (--res);
 }
 
 /*
  * dbg_text() --
- *		produce ELIZA-like text of random, bounded length, truncating the last
+ *		produce ELIZA-like text of random, bounded length, truncating the
+ *last
  *		generated sentence as required
  */
-void
-dbg_text(char *tgt, int min, int max, int sd)
-{
-   int64_t hgLength = 0,
-      hgOffset,
-      wordlen = 0,
-      s_len,
-      needed;
-   char sentence[MAX_SENT_LEN + 1],
-      *cp;
-   static char szTextPool[TEXT_POOL_SIZE + 1];
-   static int bInit = 0;
-   int nLifeNoise = 0;
+void dbg_text(char *tgt, int min, int max, int sd) {
+  int64_t hgLength = 0, hgOffset, wordlen = 0, s_len, needed;
+  char sentence[MAX_SENT_LEN + 1], *cp;
+  static char szTextPool[TEXT_POOL_SIZE + 1];
+  static int bInit = 0;
+  int nLifeNoise = 0;
 
-   if (!bInit)
-   {
-      cp = &szTextPool[0];
-      if (verbose > 0)
-         fprintf(stderr, "\nPreloading text ... ");
+  if (!bInit) {
+    cp = &szTextPool[0];
+    if (verbose > 0)
+      fprintf(stderr, "\nPreloading text ... ");
 
-      while (wordlen < TEXT_POOL_SIZE)
-      {
-         if ((verbose > 0) && (wordlen > nLifeNoise))
-         {
-            nLifeNoise += 200000;
-            fprintf(stderr, "%3.0f%%\b\b\b\b", (100.0 * wordlen)/TEXT_POOL_SIZE);
-         }
-
-         s_len = txt_sentence(sentence, 5);
-         if ( s_len < 0)
-            INTERNAL_ERROR("Bad sentence formation");
-         needed = TEXT_POOL_SIZE - wordlen;
-         if (needed >= (s_len + 1))	/* need the entire sentence */
-         {
-            strcpy(cp, sentence);
-            cp += s_len;
-            wordlen += s_len + 1;
-            *(cp++) = ' ';
-         }
-         else /* chop the new sentence off to match the length target */
-         {
-            sentence[needed] = '\0';
-            strcpy(cp, sentence);
-            wordlen += needed;
-            cp += needed;
-         }
+    while (wordlen < TEXT_POOL_SIZE) {
+      if ((verbose > 0) && (wordlen > nLifeNoise)) {
+        nLifeNoise += 200000;
+        fprintf(stderr, "%3.0f%%\b\b\b\b", (100.0 * wordlen) / TEXT_POOL_SIZE);
       }
-      *cp = '\0';
-      bInit = 1;
-      if (verbose > 0)
-         fprintf(stderr, "\n");
-   }
 
-   RANDOM(hgOffset, 0, TEXT_POOL_SIZE - max, sd);
-   RANDOM(hgLength, min, max, sd);
-   strncpy(&tgt[0], &szTextPool[hgOffset], (int)hgLength);
-   tgt[hgLength] = '\0';
+      s_len = txt_sentence(sentence, 5);
+      if (s_len < 0)
+        INTERNAL_ERROR("Bad sentence formation");
+      needed = TEXT_POOL_SIZE - wordlen;
+      if (needed >= (s_len + 1)) /* need the entire sentence */
+      {
+        strcpy(cp, sentence);
+        cp += s_len;
+        wordlen += s_len + 1;
+        *(cp++) = ' ';
+      } else /* chop the new sentence off to match the length target */
+      {
+        sentence[needed] = '\0';
+        strcpy(cp, sentence);
+        wordlen += needed;
+        cp += needed;
+      }
+    }
+    *cp = '\0';
+    bInit = 1;
+    if (verbose > 0)
+      fprintf(stderr, "\n");
+  }
 
-	return;
+  RANDOM(hgOffset, 0, TEXT_POOL_SIZE - max, sd);
+  RANDOM(hgLength, min, max, sd);
+  strncpy(&tgt[0], &szTextPool[hgOffset], (int)hgLength);
+  tgt[hgLength] = '\0';
+
+  return;
 }
 
 #ifdef TEXT_TEST
-tdef tdefs[1] = { NULL };
-distribution nouns,
-      verbs,
-      adjectives,
-      adverbs,
-      auxillaries,
-      terminators,
-      articles,
-      prepositions,
-      grammar,
-      np,
-      vp;
+tdef tdefs[1] = {NULL};
+distribution nouns, verbs, adjectives, adverbs, auxillaries, terminators,
+    articles, prepositions, grammar, np, vp;
 
-main()
-{
-	char prattle[401];
+main() {
+  char prattle[401];
 
-	verbose = 1;
+  verbose = 1;
 
-   read_dist (env_config (DIST_TAG, DIST_DFLT), "nouns", &nouns);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "verbs", &verbs);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "adjectives", &adjectives);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "adverbs", &adverbs);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "auxillaries", &auxillaries);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "terminators", &terminators);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "articles", &articles);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "prepositions", &prepositions);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "grammar", &grammar);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "np", &np);
-	read_dist (env_config (DIST_TAG, DIST_DFLT), "vp", &vp);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "nouns", &nouns);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "verbs", &verbs);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "adjectives", &adjectives);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "adverbs", &adverbs);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "auxillaries", &auxillaries);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "terminators", &terminators);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "articles", &articles);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "prepositions", &prepositions);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "grammar", &grammar);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "np", &np);
+  read_dist(env_config(DIST_TAG, DIST_DFLT), "vp", &vp);
 
-	while (1)
-	{
-		dbg_text(&prattle[0], 300, 400, 0);
-		printf("<%s>\n", prattle);
-	}
+  while (1) {
+    dbg_text(&prattle[0], 300, 400, 0);
+    printf("<%s>\n", prattle);
+  }
 
-	return(0);
+  return (0);
 }
 #endif /* TEST */
