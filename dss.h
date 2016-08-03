@@ -392,12 +392,12 @@ extern tdef tdefs[];
 #define DT_CHR 6
 
 #define PR_STR(f, str, len) (f).write((char*)(str), (len)); (f)<<SEPARATOR
-#define PR_VSTR(f, str, len) (f).write((char*)(str), (len)); (f)<<SEPARATOR
-#define PR_VSTR_LAST(f, str, len) (f).write((char*)(str), (len))
+#define PR_VSTR(f, str) (f) << (str) << SEPARATOR
+#define PR_VSTR_LAST(f, str) (f) << (str)
 #define PR_INT(f, str) (f) << (str) << SEPARATOR
 #define PR_HUGE(f, str) (f) << (str) << SEPARATOR
 #define PR_KEY(f, str) (f) << (str) << SEPARATOR
-#define PR_MONEY(f, str)
+#define PR_MONEY(f, str) { if (str < 0) { (f) << '-'; str = -str; }; (f) << str/100 << '.'; str = str%100; (f) << str/10 << str%10 << SEPARATOR; }
 #define PR_CHR(f, str) (f) << (str) << SEPARATOR
 #define PR_STRT(fp)                  /* any line prep for a record goes here */
 #define PR_END(fp) (fp) << "\n" /* finish the record here */

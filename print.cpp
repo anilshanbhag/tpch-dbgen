@@ -8,6 +8,7 @@
 #endif
 #include <math.h>
 
+#include <iostream>
 #include "dss.h"
 #include <string.h>
 #include <fstream>
@@ -67,16 +68,16 @@ int pr_cust(table_t *tp, int mode) {
   PR_STRT(fp);
   PR_HUGE(fp, c->custkey);
   if (scale <= 3000) {
-    PR_VSTR(fp, c->name, C_NAME_LEN);
+    PR_VSTR(fp, c->name);
   } else {
-    PR_VSTR(fp, c->name, C_NAME_LEN + 3);
+    PR_VSTR(fp, c->name);
   }
-  PR_VSTR(fp, c->address, c->alen);
+  PR_VSTR(fp, c->address);
   PR_HUGE(fp, c->nation_code);
   PR_STR(fp, c->phone, PHONE_LEN);
   PR_MONEY(fp, c->acctbal);
   PR_STR(fp, c->mktsegment, C_MSEG_LEN);
-  PR_VSTR_LAST(fp, c->comment, c->clen);
+  PR_VSTR_LAST(fp, c->comment);
   PR_END(fp);
 
   return (0);
@@ -105,7 +106,7 @@ int pr_order(table_t *tp, int mode) {
   PR_STR(fp_o, o->opriority, O_OPRIO_LEN);
   PR_STR(fp_o, o->clerk, O_CLRK_LEN);
   PR_INT(fp_o, o->spriority);
-  PR_VSTR_LAST(fp_o, o->comment, o->clen);
+  PR_VSTR_LAST(fp_o, o->comment);
   PR_END(fp_o);
 
   return (0);
@@ -142,9 +143,9 @@ int pr_line(table_t *tp, int mode) {
     PR_STR(fp_l, o->l[i].sdate, DATE_LEN);
     PR_STR(fp_l, o->l[i].cdate, DATE_LEN);
     PR_STR(fp_l, o->l[i].rdate, DATE_LEN);
-    PR_STR(fp_l, o->l[i].shipinstruct, L_INST_LEN);
-    PR_STR(fp_l, o->l[i].shipmode, L_SMODE_LEN);
-    PR_VSTR_LAST(fp_l, o->l[i].comment, o->l[i].clen);
+    PR_VSTR(fp_l, o->l[i].shipinstruct);
+    PR_VSTR(fp_l, o->l[i].shipmode);
+    PR_VSTR_LAST(fp_l, o->l[i].comment);
     PR_END(fp_l);
   }
 
@@ -175,14 +176,14 @@ int pr_part(table_t *tp, int mode) {
 
   PR_STRT(p_fp);
   PR_HUGE(p_fp, part->partkey);
-  PR_VSTR(p_fp, part->name, part->nlen);
+  PR_VSTR(p_fp, part->name);
   PR_STR(p_fp, part->mfgr, P_MFG_LEN);
   PR_STR(p_fp, part->brand, P_BRND_LEN);
-  PR_VSTR(p_fp, part->type, part->tlen);
+  PR_VSTR(p_fp, part->type);
   PR_HUGE(p_fp, part->size);
   PR_STR(p_fp, part->container, P_CNTR_LEN);
   PR_MONEY(p_fp, part->retailprice);
-  PR_VSTR_LAST(p_fp, part->comment, part->clen);
+  PR_VSTR_LAST(p_fp, part->comment);
   PR_END(p_fp);
 
   return (0);
@@ -205,7 +206,7 @@ int pr_psupp(table_t *tp, int mode) {
     PR_HUGE(ps_fp, part->s[i].suppkey);
     PR_HUGE(ps_fp, part->s[i].qty);
     PR_MONEY(ps_fp, part->s[i].scost);
-    PR_VSTR_LAST(ps_fp, part->s[i].comment, part->s[i].clen);
+    PR_VSTR_LAST(ps_fp, part->s[i].comment);
     PR_END(ps_fp);
   }
 
@@ -234,11 +235,11 @@ int pr_supp(table_t *tp, int mode) {
   PR_STRT(fp);
   PR_HUGE(fp, supp->suppkey);
   PR_STR(fp, supp->name, S_NAME_LEN);
-  PR_VSTR(fp, supp->address, supp->alen);
+  PR_VSTR(fp, supp->address);
   PR_HUGE(fp, supp->nation_code);
   PR_STR(fp, supp->phone, PHONE_LEN);
   PR_MONEY(fp, supp->acctbal);
-  PR_VSTR_LAST(fp, supp->comment, supp->clen);
+  PR_VSTR_LAST(fp, supp->comment);
   PR_END(fp);
 
   return (0);
@@ -255,7 +256,7 @@ int pr_nation(table_t *tp, int mode) {
   PR_HUGE(fp, c->code);
   PR_STR(fp, c->text, NATION_LEN);
   PR_INT(fp, c->join);
-  PR_VSTR_LAST(fp, c->comment, c->clen);
+  PR_VSTR_LAST(fp, c->comment);
   PR_END(fp);
 
   return (0);
@@ -271,7 +272,7 @@ int pr_region(table_t *tp, int mode) {
   PR_STRT(fp);
   PR_HUGE(fp, c->code);
   PR_STR(fp, c->text, REGION_LEN);
-  PR_VSTR_LAST(fp, c->comment, c->clen);
+  PR_VSTR_LAST(fp, c->comment);
   PR_END(fp);
 
   return (0);
